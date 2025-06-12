@@ -1,7 +1,8 @@
-from dotenv import load_dotenv
-import os
-import requests
 import json
+import os
+
+import requests
+from dotenv import load_dotenv
 
 load_dotenv()
 api_key = os.getenv("google_api_key")

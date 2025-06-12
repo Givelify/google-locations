@@ -1,7 +1,7 @@
 from mysql.connector import connect
-from google_api_calls import text_search
-from checks import autocomplete_check
 
+from checks import autocomplete_check
+from google_api_calls import text_search
 
 connection = connect(host="127.0.0.1", user="givelify", passwd="givelify", port="13306")
 

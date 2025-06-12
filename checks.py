@@ -1,6 +1,8 @@
-from google_api_calls import call_autocomplete
-from rapidfuzz import fuzz
 import re
+
+from rapidfuzz import fuzz
+
+from google_api_calls import call_autocomplete
 
 
 def check_topmost(topmost, donee_info_gp):
