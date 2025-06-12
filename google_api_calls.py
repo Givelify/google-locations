@@ -1,3 +1,5 @@
+"""json module for parsing the API responses"""
+
 import json
 import os
 
@@ -9,15 +11,17 @@ api_key = os.getenv("google_api_key")
 
 
 def text_search(gp):
+    """Function calling text search API"""
     gp_name = gp["name"]
     gp_city = gp["address"]
     gp_state = gp["state"]
     # Simulate a text search call
     print(f"Text search called for: {gp_name}, {gp_city}, {gp_state}")
-    return
+    return None  # for now
 
 
 def call_autocomplete(gp):
+    """function calling the Autocomplete API"""
     gp_name = gp["name"]
     base_url = "https://places.googleapis.com/v1/places:autocomplete"
 
@@ -37,12 +41,15 @@ def call_autocomplete(gp):
             }
         }
 
-    response = requests.post(base_url, headers=params, data=json.dumps(body))
+    response = requests.post(
+        base_url, headers=params, data=json.dumps(body), timeout=10
+    )
 
     if response.status_code == 200:
         data = response.json()
     else:
         print("failed")  # include an ERROR log here
         print(response.text)
+        return None
 
     return data
