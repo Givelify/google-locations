@@ -2,7 +2,7 @@
 
 from mysql.connector import connect
 
-from checks import autocomplete_check
+from checks import autocomplete_check, check_topmost
 from google_api_calls import text_search
 
 connection = connect(host="127.0.0.1", user="givelify", passwd="givelify", port="13306")
@@ -32,12 +32,14 @@ WHERE b.giving_partner_id IS NULL
         print(
             f"Processing donee_id: {gp['donee_id']}, name: {gp['name']}, address: {gp["address"]}"
         )
-        process_gp(gp)
+        # process_gp(gp)
+        print(gp)
 
 
 def process_gp(gp):
     """Module that processes each GP"""
     autocomplete_result = autocomplete_check(gp)
+    # autocomplete_result is a tuple of type (bool, place_id)
     if autocomplete_result[0]:
         write_query = (
             "INSERT INTO platform.giving_partner_locations "
@@ -69,25 +71,27 @@ def process_gp(gp):
         print("processed")
 
         return True  # processed successfully
-    # text_search_results = text_search(gp)
-    # if len(text_search_results) > 0:
-    #     # get the topmost result from the text search assuming it is the right GP
-    #     top_result = text_search_results[0]
-    #     valid = check_gp(top_result, gp)
-    #     if not valid:
-    #         return False
-    #     else:
-    #         write_query = "INSERT INTO platform.giving_partner_locations (giving_patnter_id, phone_number, address, latitude, longitude, api_id) VALUES (%s, %s, %s, %s, %s, %s)"
-    #         vals = (
-    #             gp['donee_id'],
-    #             gp['phone_number'],
-    #             gp['address'],
-    #             gp['latitude'],
-    #             gp['longitude'],
-    #             gp['api_id'],
-    #             # 1, # valid is set to 1 as we couldn't verify the address
-    #             # 0 # same_address is set to 0 as its not the same as one returned by the autocomplete API
-    #     )
+    text_search_results = text_search(gp)
+    if len(text_search_results) > 0:
+        #     # get the topmost result from the text search assuming it is the right GP
+        top_result = text_search_results[0]
+        valid = check_topmost(top_result, gp)
+        if not valid:
+            print("not processed")
+            return False
+        write_query = "INSERT INTO platform.giving_partner_locations (giving_patnter_id, phone_number, address, latitude, longitude, api_id) VALUES (%s, %s, %s, %s, %s, %s)"
+        vals = (
+            gp["donee_id"],
+            gp[
+                "phone_number"
+            ],  # for now just do ph no from our db, but if we get ph no from api use that as public facing one
+            top_result["formattedAddress"],
+            top_result["location"]["latitude"],
+            top_result["location"]["longitude"],
+            top_result["id"],
+            # 1, # valid is set to 1 as we couldn't verify the address
+            # 0 # same_address is set to 0 as its not the same as one returned by the autocomplete API
+        )
     # else:
     #     return False
     print("not processed")

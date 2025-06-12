@@ -9,8 +9,19 @@ from google_api_calls import call_autocomplete
 
 def check_topmost(topmost, donee_info_gp):
     """Function to compare the topmost text search API response against the gp information in out database to verify it is the correct gp"""
-    print(f"Checking topmost result for: {donee_info_gp['name']}")
+    print(f"Checking topmost result {topmost} for: {donee_info_gp['name']}")
+    # preprocess the strings
+    gp_name = donee_info_gp["name"].lower()
+    topmost_name = topmost["displayName"].lower()
+    if fuzz.ratio(gp_name, topmost_name) < 90:
+        print(
+            f"Topmost name {topmost_name} does not match GP name {gp_name}, skipping."
+        )
+        return False
     return True
+
+
+# for now just go with the assumption that the topmost one is good if the name matches more than 90
 
 
 def normalize_address(address):

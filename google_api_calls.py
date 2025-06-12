@@ -13,11 +13,32 @@ api_key = os.getenv("google_api_key")
 def text_search(gp):
     """Function calling text search API"""
     gp_name = gp["name"]
-    gp_city = gp["address"]
+    gp_city = gp["city"]
     gp_state = gp["state"]
     # Simulate a text search call
-    print(f"Text search called for: {gp_name}, {gp_city}, {gp_state}")
-    return None  # for now
+    # print(f"Text search called for: {gp_name}, {gp_city}, {gp_state}")
+    input_string = gp_name + ", " + gp_city + ", " + gp_state
+    base_url = "https://places.googleapis.com/v1/places:searchText"
+
+    params = {
+        "X-Goog-Api-Key": api_key,
+        "Content-Type": "application/json",
+        "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location",
+    }
+
+    body = {
+        "textQuery": input_string,
+    }
+    response = requests.post(
+        base_url, headers=params, data=json.dumps(body), timeout=10
+    )
+    if response.status_code == 200:
+        data = response.json()
+    else:
+        # include an error log here
+        print(response.text)
+        return None
+    return data.get("places", [])
 
 
 def call_autocomplete(gp):
@@ -48,7 +69,7 @@ def call_autocomplete(gp):
     if response.status_code == 200:
         data = response.json()
     else:
-        print("failed")  # include an ERROR log here
+        # include an ERROR log here
         print(response.text)
         return None
 
