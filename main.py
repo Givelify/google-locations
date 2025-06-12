@@ -3,19 +3,14 @@ from google_api_calls import text_search
 from checks import autocomplete_check
 
 
-connection = connect(
-host ="127.0.0.1",
-user ="givelify",
-passwd ="givelify",
-port="13306"
-)
+connection = connect(host="127.0.0.1", user="givelify", passwd="givelify", port="13306")
 
 
 mycursor = connection.cursor(dictionary=True)
 
 
 def main():
-# pull the non - processed GPs from the database
+    # pull the non - processed GPs from the database
     query = """
     SELECT a.*
 FROM givelify.donee_info AS a
@@ -26,29 +21,36 @@ WHERE b.giving_partner_id IS NULL
     """
     vals = (1, 0)
 
-
     mycursor.execute(query, vals)
 
     data = mycursor.fetchall()
 
-
     for gp in data:
-        print(f"Processing donee_id: {gp['donee_id']}, name: {gp['name']}, address: {gp["address"]}")
+        print(
+            f"Processing donee_id: {gp['donee_id']}, name: {gp['name']}, address: {gp["address"]}"
+        )
         process_GP(gp)
-
 
 
 def process_GP(gp):
     autoComplete_check = autocomplete_check(gp)
     if autoComplete_check[0]:
         write_query = "INSERT INTO platform.giving_partner_locations (giving_partner_id, phone_number, address, latitude, longitude, api_id) VALUES (%s, %s, %s, %s, %s, %s)"
-        gp_address = gp['address'] + ", " + gp["city"] + ", " + gp["state"] + ", " + gp["country"]  # for now just add from done_info table, but in future add code to pull city, state and country from autocomplete result to help with cases when those fields are empty or inaccurate in donee_info
+        gp_address = (
+            gp["address"]
+            + ", "
+            + gp["city"]
+            + ", "
+            + gp["state"]
+            + ", "
+            + gp["country"]
+        )  # for now just add from done_info table, but in future add code to pull city, state and country from autocomplete result to help with cases when those fields are empty or inaccurate in donee_info
         vals = (
-            gp['donee_id'],
-            gp['phone'],
+            gp["donee_id"],
+            gp["phone"],
             gp_address,
-            gp['donee_lat'],
-            gp['donee_lon'],
+            gp["donee_lat"],
+            gp["donee_lon"],
             autoComplete_check[1],
             # 1, # valid is set to 1 as verified the address in our DB with the autocomplete API
             # 1 # same_address is set to 1 as its the same as one returned by the autocomplete API
@@ -58,7 +60,7 @@ def process_GP(gp):
 
         print("processed")
 
-        return True # processed successfully
+        return True  # processed successfully
     else:
         # text_search_results = text_search(gp)
         # if len(text_search_results) > 0:
@@ -83,6 +85,8 @@ def process_GP(gp):
         #     return False
         print("not processed")
         return False
+
+
 if "__main__" == __name__:
     main()
 
@@ -91,4 +95,3 @@ connection.commit()
 
 mycursor.close()
 connection.close()
-
