@@ -6,27 +6,95 @@ from unittest.mock import patch
 
 sys.path.append("..")
 
-from checks import autocomplete_check, fuzzy_address_check, normalize_address
+from checks import (
+    autocomplete_check,
+    check_topmost,
+    fuzzy_address_check,
+    normalize_address,
+)
 
 
 class TestChecks(unittest.TestCase):
-    def test_normalize_address(self):
-        self.assertEqual(normalize_address("United States"), "usa")
-        self.assertEqual(normalize_address("Bahamas"), "bahamas")
-        self.assertEqual(normalize_address("US"), "usa")
-        self.assertEqual(normalize_address("U.S.A."), "usa")
-        self.assertEqual(normalize_address("U.S."), "usa")
-        self.assertEqual(normalize_address("U.S"), "usa")
-        self.assertEqual(normalize_address("U.S.A"), "usa")
-        self.assertEqual(normalize_address("America"), "usa")
+    """Unit tests for the checks module"""
 
+    # write a unit test for the below function
     @patch("checks.fuzz.ratio", return_value=95)
-    def test_fuzzy_address_check(self, mock_ratio):
-        api_address = "123 Main St, Springfield, IL, USA"
-        gp_address = "123 Main Street, Springfield, Illinois, USA"
-        result = fuzzy_address_check(api_address, gp_address)
+    def test_check_topmost(self, mock_ratio):
+        """Test the check_topmost function"""
+        topmost = {
+            "displayName": {"text": "test GP"},
+            "placeId": "place1_id",
+        }
+        donee_info_gp = {"name": "Test gp"}
+        result = check_topmost(topmost, donee_info_gp)
         self.assertTrue(result)
-        mock_ratio.assert_called_once()
+        mock_ratio.assert_called_once_with("test gp", "test gp")
+
+    def test_normalize_address(self):
+        """Test the normalize_address function"""
+        self.assertEqual(
+            normalize_address("630 W 28th St, Indianapolis, IN, United States")[
+                "country"
+            ],
+            "usa",
+        )
+        self.assertEqual(
+            normalize_address("Columbus Dr & Nansen Ave, Freeport, GBI, BHS")[
+                "country"
+            ],
+            "bahamas",
+        )
+        self.assertEqual(
+            normalize_address("630 W 28th St, Indianapolis, IN, US")["country"],
+            "usa",
+        )
+        self.assertEqual(
+            normalize_address("630 W 28th St, Indianapolis, IN, U.S.A.")["country"],
+            "usa",
+        )
+        self.assertEqual(
+            normalize_address("630 W 28th St, Indianapolis, IN, U.S.")["country"],
+            "usa",
+        )
+        self.assertEqual(
+            normalize_address("630 W 28th St, Indianapolis, IN, U.S")["country"],
+            "usa",
+        )
+        self.assertEqual(
+            normalize_address("630 W 28th St, Indianapolis, IN, U.S.A")["country"],
+            "usa",
+        )
+        self.assertEqual(
+            normalize_address("630 W 28th St, Indianapolis, IN, America")["country"],
+            "usa",
+        )
+
+        expected_dict = {
+            "street": "630 w 28th st, test lane, test blvd",
+            "city": "indianapolis",
+            "state": "in",
+            "country": "usa",
+        }
+        self.assertEqual(
+            normalize_address(
+                "630 W 28th St, test lane, test blvd, Indianapolis, IN, America"
+            ),
+            expected_dict,
+        )
+
+        with self.assertRaises(Exception):
+            normalize_address("630 W 28th St, IN, America")
+
+    # @patch("checks.fuzz.ratio", return_value=95)
+    def test_fuzzy_address_check(self):
+        """Test the fuzzy_address_check function"""
+        api_address1 = "123 Main St, Springfield, USA"
+        gp_address1 = "123 Main Street, Springfield, Illinois, USA"
+        with self.assertRaises(Exception):
+            fuzzy_address_check(api_address1, gp_address1)
+        api_address2 = "123 Main St, Springfield, Illinois, USA"
+        self.assertTrue(fuzzy_address_check(api_address2, gp_address1))
+        # mock_ratio.assert_called_once()
 
     @patch(
         "checks.call_autocomplete",
@@ -37,16 +105,16 @@ class TestChecks(unittest.TestCase):
                         "place": "places/place1_id",
                         "placeId": "place1_id",
                         "text": {
-                            "text": "test Church, 123 Main St, Springfield, IL, USA",
+                            "text": "test GP, West Strieff Lane, Glenwood, IL, USA",
                             "matches": [{"endOffset": 37}],
                         },
                         "structuredFormat": {
                             "mainText": {
-                                "text": "test Church",
+                                "text": "test GP",
                                 "matches": [{"endOffset": 37}],
                             },
                             "secondaryText": {
-                                "text": "123 Main St, Springfield, IL, USA"
+                                "text": "West Strieff Lane, Glenwood, IL, USA"
                             },
                         },
                         "types": [
@@ -59,19 +127,38 @@ class TestChecks(unittest.TestCase):
             ]
         },
     )
-    @patch("checks.fuzzy_address_check", return_value=True)
-    def test_autocomplete_check(self, mock_fuzzy_check, mock_autocomplete):
+    # @patch("checks.fuzzy_address_check", return_value=True)
+    def test_autocomplete_check_success(self, mock_call_autocomplete):
+        """Test the autocomplete_check function"""
         donee_info_gp = {
             "name": "Test GP",
-            "address": "123 Main St",
-            "city": "Springfield",
+            "address": "845 W Strieff Ln",
+            "city": "Glenwood",
             "state": "IL",
-            "country": "USA",
+            "country": "United States",
         }
         result = autocomplete_check(donee_info_gp)
-        self.assertTrue(result)
-        mock_autocomplete.assert_called_once_with(donee_info_gp)
-        mock_fuzzy_check.assert_called_once()
+        self.assertTupleEqual(result, (True, "place1_id"))
+
+        donee_info_gp2 = {
+            "name": "Test GP",
+            "address": "845 Bakers Ln",
+            "city": "Glenwood",
+            "state": "IL",
+            "country": "United States",
+        }
+        result2 = autocomplete_check(donee_info_gp2)
+        self.assertTupleEqual(result2, (False, ""))
+
+        donee_info_gp3 = {
+            "name": "Test GP",
+            "address": "845 Bakers Ln",
+            "city": "",
+            "state": "IL",
+            "country": "United States",
+        }
+        result3 = autocomplete_check(donee_info_gp3)
+        self.assertTupleEqual(result3, (False, ""))
 
 
 if __name__ == "__main__":
