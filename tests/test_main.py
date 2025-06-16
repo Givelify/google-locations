@@ -30,7 +30,7 @@ class TestGPProcessor(unittest.TestCase):
         mock_autocomplete.return_value = (True, "place_id_123")
         main.mycursor = MagicMock()
 
-        result = main.process_gp(mock_gp)
+        result = main.process_gp(mock_gp, main.mycursor)
 
         self.assertTrue(result)
         main.mycursor.execute.assert_called_once()
@@ -66,7 +66,7 @@ class TestGPProcessor(unittest.TestCase):
         mock_text_search.return_value = [mock_top_result]
 
         main.mycursor = MagicMock()
-        result = main.process_gp(mock_gp)
+        result = main.process_gp(mock_gp, main.mycursor)
 
         self.assertTrue(result)
         main.mycursor.execute.assert_called_once()
@@ -96,7 +96,7 @@ class TestGPProcessor(unittest.TestCase):
         mock_text_search.return_value = []  # no hits for text search api call
         main.mycursor = MagicMock()
 
-        result = main.process_gp(mock_gp)
+        result = main.process_gp(mock_gp, main.mycursor)
 
         self.assertFalse(result)
         main.mycursor.execute.assert_not_called()
@@ -128,7 +128,7 @@ class TestGPProcessor(unittest.TestCase):
         mock_text_search.return_value = [mock_top_result]
         main.mycursor = MagicMock()
 
-        result = main.process_gp(mock_gp)
+        result = main.process_gp(mock_gp, main.mycursor)
 
         self.assertFalse(result)
         main.mycursor.execute.assert_not_called()

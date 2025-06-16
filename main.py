@@ -5,14 +5,14 @@ from mysql.connector import connect
 from checks import autocomplete_check, check_topmost
 from google_api_calls import text_search
 
-connection = connect(host="127.0.0.1", user="givelify", passwd="givelify", port="13306")
-
-
-mycursor = connection.cursor(dictionary=True)
-
 
 def main():
     """Main module"""
+    connection = connect(
+        host="127.0.0.1", user="givelify", passwd="givelify", port="13306"
+    )
+
+    mycursor = connection.cursor(dictionary=True)
     # pull the non - processed GPs from the database
     query = """
     SELECT a.*
@@ -32,10 +32,14 @@ WHERE b.giving_partner_id IS NULL
         print(
             f"Processing donee_id: {gp['donee_id']}, name: {gp['name']}, address: {gp["address"]}"
         )
-        process_gp(gp)
+        process_gp(gp, mycursor)
+    connection.commit()
+
+    mycursor.close()
+    connection.close()
 
 
-def process_gp(gp):
+def process_gp(gp, mycursor):
     """Module that processes each GP"""
     autocomplete_result = autocomplete_check(gp)
     # autocomplete_result is a tuple of type (bool, place_id)
@@ -101,9 +105,3 @@ def process_gp(gp):
 
 if "__main__" == __name__:
     main()
-
-
-connection.commit()
-
-mycursor.close()
-connection.close()
