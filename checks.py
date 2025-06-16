@@ -2,9 +2,18 @@
 
 import re
 
+from givelifylogging import StructuredLogger as slogger
 from rapidfuzz import fuzz
 
 from google_api_calls import call_autocomplete
+
+logger = slogger.StructuredLogger.getLogger(
+    "module name",
+    "Log Level String: Optional",
+    "Log handler : Optional",
+    "Log location: Optional",
+    "Log File Name: Optional",
+)
 
 
 def check_topmost(topmost, donee_info_gp):
@@ -58,8 +67,8 @@ def fuzzy_address_check(api_address, gp_address):
         raise ValueError(f"api_address: {api_address} {e}") from e
     try:
         preprocessed_gp_address = normalize_address(gp_address)
-    except ValueError as e:
-        raise ValueError(f"api_address: {api_address} {e}") from e
+    except ValueError as f:
+        raise ValueError(f"api_address: {api_address} {f}") from f
 
     # return fuzz.ratio(preprocessed_api_address, preprocessed_gp_address)
     # weights for different components of the address
