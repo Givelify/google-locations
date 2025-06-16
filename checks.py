@@ -24,11 +24,13 @@ def check_topmost(topmost, donee_info_gp):
 
 
 def normalize_address(address):
-    """the Normalization function is written to preprocesses the address strings, ensuring they are ready for comparision, and also split the adderss
-    into street, city, state and country components so that more different weights can be used for each part of the address during comparision
+    """the Normalization function is written to preprocesses the address strings,
+    ensuring they are ready for comparision, and also split the adderss
+    into street, city, state and country components so that more different
+    weights can be used for each part of the address during comparision
     """
     country_replacements = {
-        r"\b(?:United States of America|United States|America|U\.?S\.?A\.?|USA|US|U\.?S\.?)\b\.?": "USA",
+        r"\b(?:United States of America|United States|America|U\.?S\.?A\.?|USA|US|U\.?S\.?)\b\.?": "USA",  # pylint: disable=line-too-long
         r"\b(BHS|Bahamas)": "Bahamas",
     }
     for pattern, replacement in country_replacements.items():
@@ -49,8 +51,12 @@ def normalize_address(address):
     return parsed_address
 
 
+# pylint: disable=too-many-locals
+
+
 def fuzzy_address_check(api_address, gp_address):
-    """Function that compares the address returned by autocomplete API and the gp address in our database"""
+    """Function that compares the address returned by autocomplete API
+    and the gp address in our database"""
     try:
         preprocessed_api_address = normalize_address(api_address)
     except ValueError as e:
@@ -64,7 +70,7 @@ def fuzzy_address_check(api_address, gp_address):
             f"api_address: {api_address} {f}"
         ) from f  # error / exception already logged in normalize_address() function
 
-    # weights for different components of the address, we want to place more weight on street comparision
+    # weights for different components of the address, we want to place more weight on street comparision pylint: disable=line-too-long
     street_weight = 0.5
     city_weight = 0.2
     state_weight = 0.2
@@ -133,7 +139,7 @@ def autocomplete_check(donee_info_gp):
                     # Error log this, say skipping autocomplete check because of e
                     return False, ""
                 print(
-                    f"auto address: {autocomplete_address}, donee_info address: {gp_address}, sim_score: {similarity_score}"
+                    f"auto address: {autocomplete_address}, donee_info address: {gp_address}, sim_score: {similarity_score}"  # pylint: disable=line-too-long
                 )
                 if similarity_score > 80:
                     return True, suggestion.get("placePrediction", {}).get(
