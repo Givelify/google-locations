@@ -1,11 +1,9 @@
 """sys module for accessing modules in parent directory"""
 
-import sys
 import unittest
 from unittest.mock import MagicMock, patch
 
-sys.path.append("..")
-import main  # pylint: disable=wrong-import-position
+import main
 
 
 class TestGPProcessor(unittest.TestCase):

@@ -1,12 +1,9 @@
 """using sys module for importing modules from parent directory"""
 
-import sys
 import unittest
 from unittest.mock import patch
 
-sys.path.append("..")
-
-from checks import (  # pylint: disable=wrong-import-position
+from checks import (
     autocomplete_check,
     check_topmost,
     fuzzy_address_check,

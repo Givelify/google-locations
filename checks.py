@@ -11,7 +11,6 @@ def check_topmost(topmost, donee_info_gp):
     """Function to compare the topmost text search API response against the gp information in out database to verify it is the correct gp"""  # pylint: disable=line-too-long
     topmost_name = topmost["displayName"]["text"].lower()
     print(f"Checking topmost result {topmost_name} for: {donee_info_gp['name']}")
-    # preprocess the strings
     gp_name = donee_info_gp["name"].lower()
     if fuzz.ratio(gp_name, topmost_name) < 90:
         print(
@@ -24,13 +23,11 @@ def check_topmost(topmost, donee_info_gp):
 # for now just go with the assumption that the topmost one is good if the name matches more than 90
 
 
-# function changed to place more weight on street part of address than country, city and state
-# if len(addr) >= 4, get the last three parts split by ',' and return as dict with street, state, city, and country keys # pylint: disable=line-too-long
 def normalize_address(address):
-    """Function to preprocesses the address strings"""
-    # convert country name to standard abb
+    """the Normalization function is written to preprocesses the address strings, ensuring they are ready for comparision, and also split the adderss
+    into street, city, state and country components so that more different weights can be used for each part of the address during comparision
+    """
     country_replacements = {
-        # r"\b(United States|United States of America|U(\.)?S(\.)?|U(\.)?S(\.)?A(\.)?|America)\b": "USA",
         r"\b(?:United States of America|United States|America|U\.?S\.?A\.?|USA|US|U\.?S\.?)\b\.?": "USA",
         r"\b(BHS|Bahamas)": "Bahamas",
     }
@@ -45,7 +42,9 @@ def normalize_address(address):
         parsed_address["state"] = address_parts[-2]
         parsed_address["city"] = address_parts[-3]
     else:
-        print(f"{address} not complete error")
+        print(
+            f"{address} not complete error"
+        )  # add an error log here stating that the DB is missing city, state or country
         raise ValueError("address not complete error:")
     return parsed_address
 
@@ -55,14 +54,17 @@ def fuzzy_address_check(api_address, gp_address):
     try:
         preprocessed_api_address = normalize_address(api_address)
     except ValueError as e:
-        raise ValueError(f"api_address: {api_address} {e}") from e
+        raise ValueError(
+            f"api_address: {api_address} {e}"
+        ) from e  # error / exception already logged in normalize_address() function
     try:
         preprocessed_gp_address = normalize_address(gp_address)
     except ValueError as f:
-        raise ValueError(f"api_address: {api_address} {f}") from f
+        raise ValueError(
+            f"api_address: {api_address} {f}"
+        ) from f  # error / exception already logged in normalize_address() function
 
-    # return fuzz.ratio(preprocessed_api_address, preprocessed_gp_address)
-    # weights for different components of the address
+    # weights for different components of the address, we want to place more weight on street comparision
     street_weight = 0.5
     city_weight = 0.2
     state_weight = 0.2
@@ -92,7 +94,9 @@ def fuzzy_address_check(api_address, gp_address):
 
 
 def autocomplete_check(donee_info_gp):
-    """Function that calls the autocomplete api and then calls fuzzy check on each returned address against the gp address in our database to see if they match"""
+    """Function that calls the autocomplete api and then calls fuzzy check on each returned address
+    against the gp address in our database to see if they match. If one of the hits match,
+    it returns True"""
     gp_address = ", ".join(
         filter(
             None,
@@ -104,7 +108,9 @@ def autocomplete_check(donee_info_gp):
             ],
         )
     )
-    print(f"Autocomplete check for: {donee_info_gp['name']}, address: {gp_address}")
+    print(
+        f"Autocomplete check for: {donee_info_gp['name']}, address: {gp_address}"
+    )  # log this message
     try:
         autocomplete_results = call_autocomplete(donee_info_gp)
     except Exception as e:  # pylint: disable=broad-exception-caught
@@ -133,9 +139,4 @@ def autocomplete_check(donee_info_gp):
                     return True, suggestion.get("placePrediction", {}).get(
                         "placeId", ""
                     )
-    return False, ""
-
-    # test cases for this function:
-    # check for GPs whose addresses cross 80 threshold
-    # check for GPs whose addresses do not cross 80 but in fact have same addresses
-    # check for GPs who do not have any matching address in autocomplete results
+    return False, ""  # log this stating autocomplete check failed for gp

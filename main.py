@@ -72,10 +72,10 @@ def process_gp(gp, cursor):
 
         print("processed")
 
-        return True  # processed successfully
+        return True  # processed successfully, log success
     text_search_results = text_search(gp)
     if len(text_search_results) > 0:
-        #     # get the topmost result from the text search assuming it is the right GP
+        # get the topmost result from the text search assuming it is the right GP
         top_result = text_search_results[0]
         valid = check_topmost(top_result, gp)
         if not valid:
@@ -99,7 +99,7 @@ def process_gp(gp, cursor):
         return True
     print(
         "not processed as neither autocomplete check passed nor the topmost result from text search does not match"  # pylint: disable=line-too-long
-    )
+    )  # log the failure to process the GP
     return False
 
 

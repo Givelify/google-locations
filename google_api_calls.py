@@ -15,8 +15,6 @@ def text_search(gp):
     gp_name = gp["name"]
     gp_city = gp["city"]
     gp_state = gp["state"]
-    # Simulate a text search call
-    # print(f"Text search called for: {gp_name}, {gp_city}, {gp_state}")
     input_string = gp_name + ", " + gp_city + ", " + gp_state
     base_url = "https://places.googleapis.com/v1/places:searchText"
 
