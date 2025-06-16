@@ -12,7 +12,9 @@ def main():
         host="127.0.0.1", user="givelify", passwd="givelify", port="13306"
     )
 
-    mycursor = connection.cursor(dictionary=True)
+    mycursor = connection.cursor(
+        dictionary=True
+    )  # pylint: disable=redefined-outer-name
     # pull the non - processed GPs from the database
     query = """
     SELECT a.*
@@ -26,7 +28,7 @@ WHERE b.giving_partner_id IS NULL
 
     mycursor.execute(query, vals)
 
-    data = mycursor.fetchall()  # pylint: disable=redefined-outer-name
+    data = mycursor.fetchall()
 
     for gp in data:
         print(
