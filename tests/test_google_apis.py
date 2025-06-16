@@ -6,7 +6,10 @@ from unittest.mock import MagicMock, patch
 
 sys.path.append("..")
 
-from google_api_calls import call_autocomplete, text_search
+from google_api_calls import (  # pylint: disable=wrong-import-position
+    call_autocomplete,
+    text_search,
+)
 
 
 class TestApiFunctions(unittest.TestCase):
