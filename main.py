@@ -12,7 +12,7 @@ def main():
         host="127.0.0.1", user="givelify", passwd="givelify", port="13306"
     )
 
-    mycursor = connection.cursor(
+    db_cursor = connection.cursor(
         dictionary=True
     )  # pylint: disable=redefined-outer-name
     # pull the non - processed GPs from the database
@@ -26,18 +26,18 @@ WHERE b.giving_partner_id IS NULL
     """
     vals = (1, 0)
 
-    mycursor.execute(query, vals)
+    db_cursor.execute(query, vals)
 
-    data = mycursor.fetchall()
+    data = db_cursor.fetchall()
 
     for gp in data:
         print(
             f"Processing donee_id: {gp['donee_id']}, name: {gp['name']}, address: {gp["address"]}"
         )
-        process_gp(gp, mycursor)
+        process_gp(gp, db_cursor)
     connection.commit()
 
-    mycursor.close()
+    db_cursor.close()
     connection.close()
 
 
