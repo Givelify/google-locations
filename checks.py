@@ -2,18 +2,7 @@
 
 import re
 
-from givelifylogging import StructuredLogger as slogger
 from rapidfuzz import fuzz
-
-from google_api_calls import call_autocomplete
-
-logger = slogger.StructuredLogger.getLogger(
-    "module name",
-    "Log Level String: Optional",
-    "Log handler : Optional",
-    "Log location: Optional",
-    "Log File Name: Optional",
-)
 
 
 def check_topmost(topmost, donee_info_gp):
