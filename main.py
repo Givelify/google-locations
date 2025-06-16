@@ -39,7 +39,7 @@ WHERE b.giving_partner_id IS NULL
     connection.close()
 
 
-def process_gp(gp, mycursor):
+def process_gp(gp, cursor):
     """Module that processes each GP"""
     autocomplete_result = autocomplete_check(gp)
     # autocomplete_result is a tuple of type (bool, place_id)
@@ -68,7 +68,7 @@ def process_gp(gp, mycursor):
             autocomplete_result[1],
         )
 
-        mycursor.execute(write_query, vals)
+        cursor.execute(write_query, vals)
 
         print("processed")
 
@@ -95,7 +95,7 @@ def process_gp(gp, mycursor):
             top_result["location"]["longitude"],
             top_result["id"],
         )
-        mycursor.execute(write_query, vals)
+        cursor.execute(write_query, vals)
         return True
     print(
         "not processed as neither autocomplete check passed nor the topmost result from text search does not match"  # pylint: disable=line-too-long
