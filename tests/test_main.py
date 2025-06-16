@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 sys.path.append("..")
-import main
+import main  # pylint: disable=wrong-import-position
 
 
 class TestGPProcessor(unittest.TestCase):
@@ -42,7 +42,7 @@ class TestGPProcessor(unittest.TestCase):
     @patch("main.autocomplete_check")
     @patch("main.text_search")
     def test_process_gp_text_search_success(self, mock_text_search, mock_autocomplete):
-        """testing function for cases with failure of autocomplete check and text search api success"""
+        """testing function for cases with failure of autocomplete check and text search api success"""  # pylint: disable=line-too-long
         mock_gp = {
             "donee_id": 2,
             "name": "Faith Center",
@@ -78,7 +78,7 @@ class TestGPProcessor(unittest.TestCase):
     @patch("main.autocomplete_check")
     @patch("main.text_search")
     def test_process_gp_no_hits(self, mock_text_search, mock_autocomplete):
-        """testing funciton for cases with autcomplete check fail, and no hits for text search api call"""
+        """testing funciton for cases with autcomplete check fail, and no hits for text search api call"""  # pylint: disable=line-too-long
         mock_gp = {
             "donee_id": 3,
             "name": "Grace Hall",
@@ -104,7 +104,7 @@ class TestGPProcessor(unittest.TestCase):
     @patch("main.autocomplete_check")
     @patch("main.text_search")
     def test_process_gp_failure_on_hit(self, mock_text_search, mock_autocomplete):
-        """testing function for cases of autocomplete check fail, and the topmost hit of text search api not matching gp from donee_info table"""
+        """testing function for cases of autocomplete check fail, and the topmost hit of text search api not matching gp from donee_info table"""  # pylint: disable=line-too-long
         mock_gp = {
             "donee_id": 3,
             "name": "Grace Hall",

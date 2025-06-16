@@ -46,7 +46,7 @@ def process_gp(gp, mycursor):
     if autocomplete_result[0]:
         write_query = (
             "INSERT INTO platform.giving_partner_locations "
-            "(giving_partner_id, giving_partner_name, phone_number, address, latitude, longitude, api_id) "
+            "(giving_partner_id, giving_partner_name, phone_number, address, latitude, longitude, api_id) "  # pylint: disable=line-too-long
             "VALUES (%s, %s, %s, %s, %s, %s, %s)"
         )
         gp_address = (
@@ -57,7 +57,7 @@ def process_gp(gp, mycursor):
             + gp["state"]
             + ", "
             + gp["country"]
-        )  # for now just add from done_info table, but in future add code to pull city, state and country from autocomplete result to help with cases when those fields are empty or inaccurate in donee_info
+        )  # for now just add from done_info table, but in future add code to pull city, state and country from autocomplete result to help with cases when those fields are empty or inaccurate in donee_info # pylint: disable=line-too-long
         vals = (
             gp["donee_id"],
             gp["name"],
@@ -80,16 +80,16 @@ def process_gp(gp, mycursor):
         valid = check_topmost(top_result, gp)
         if not valid:
             print(
-                f"not processed as the topmost result from text search {top_result["displayName"]["text"]} does not match gp name {gp["name"]}"
+                f"not processed as the topmost result from text search {top_result["displayName"]["text"]} does not match gp name {gp["name"]}"  # pylint: disable=line-too-long
             )
             return False
-        write_query = "INSERT INTO platform.giving_partner_locations (giving_partner_id, giving_partner_name, phone_number, address, latitude, longitude, api_id) VALUES (%s, %s, %s, %s, %s, %s, %s)"
+        write_query = "INSERT INTO platform.giving_partner_locations (giving_partner_id, giving_partner_name, phone_number, address, latitude, longitude, api_id) VALUES (%s, %s, %s, %s, %s, %s, %s)"  # pylint: disable=line-too-long
         vals = (
             gp["donee_id"],
             top_result["displayName"]["text"],
             gp[
                 "phone"
-            ],  # for now just do ph no from our db, but if we get ph no from api use that as public facing one
+            ],  # for now just do ph no from our db, but if we get ph no from api use that as public facing one  # pylint: disable=line-too-long
             top_result["formattedAddress"],
             top_result["location"]["latitude"],
             top_result["location"]["longitude"],
@@ -98,7 +98,7 @@ def process_gp(gp, mycursor):
         mycursor.execute(write_query, vals)
         return True
     print(
-        "not processed as neither autocomplete check passed nor the topmost result from text search does not match"
+        "not processed as neither autocomplete check passed nor the topmost result from text search does not match"  # pylint: disable=line-too-long
     )
     return False
 

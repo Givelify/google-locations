@@ -8,7 +8,7 @@ from google_api_calls import call_autocomplete
 
 
 def check_topmost(topmost, donee_info_gp):
-    """Function to compare the topmost text search API response against the gp information in out database to verify it is the correct gp"""
+    """Function to compare the topmost text search API response against the gp information in out database to verify it is the correct gp"""  # pylint: disable=line-too-long
     topmost_name = topmost["displayName"]["text"].lower()
     print(f"Checking topmost result {topmost_name} for: {donee_info_gp['name']}")
     # preprocess the strings
@@ -25,7 +25,7 @@ def check_topmost(topmost, donee_info_gp):
 
 
 # function changed to place more weight on street part of address than country, city and state
-# if len(addr) >= 4, get the last three parts split by ',' and return as dict with street, state, city, and country keys
+# if len(addr) >= 4, get the last three parts split by ',' and return as dict with street, state, city, and country keys # pylint: disable=line-too-long
 def normalize_address(address):
     """Function to preprocesses the address strings"""
     # convert country name to standard abb
@@ -107,8 +107,8 @@ def autocomplete_check(donee_info_gp):
     print(f"Autocomplete check for: {donee_info_gp['name']}, address: {gp_address}")
     try:
         autocomplete_results = call_autocomplete(donee_info_gp)
-    except Exception as e:
-        print(f"Error calling autocomplete API: {e}")
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        print(f"Error calling autocomplete API: {e}")  # error log this
         return False, ""
     if len(autocomplete_results) > 0:
         for suggestion in autocomplete_results.get("suggestions", []):
@@ -123,8 +123,8 @@ def autocomplete_check(donee_info_gp):
                     similarity_score = fuzzy_address_check(
                         autocomplete_address, gp_address
                     )
-                except ValueError as e:
-                    # TODO: Error log this, say skipping autocomplete check because of e
+                except ValueError as e:  # pylint: disable=unused-variable
+                    # Error log this, say skipping autocomplete check because of e
                     return False, ""
                 print(
                     f"auto address: {autocomplete_address}, donee_info address: {gp_address}, sim_score: {similarity_score}"

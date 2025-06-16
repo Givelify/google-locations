@@ -6,7 +6,7 @@ from unittest.mock import patch
 
 sys.path.append("..")
 
-from checks import (
+from checks import (  # pylint: disable=wrong-import-position
     autocomplete_check,
     check_topmost,
     fuzzy_address_check,
@@ -128,7 +128,9 @@ class TestChecks(unittest.TestCase):
         },
     )
     # @patch("checks.fuzzy_address_check", return_value=True)
-    def test_autocomplete_check_success(self, mock_call_autocomplete):
+    def test_autocomplete_check_success(
+        self, mock_call_autocomplete
+    ):  # pylint: disable=unused-argument
         """Test the autocomplete_check function"""
         donee_info_gp = {
             "name": "Test GP",

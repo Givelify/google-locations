@@ -139,7 +139,7 @@ class TestApiFunctions(unittest.TestCase):
 
     @patch("requests.post")
     def test_call_autocomplete_with_no_location_bias(self, mock_post):
-        """Mock a success response for the autocomplete api when gp doesnt have lat / long in the database"""
+        """Mock a success response for the autocomplete api when gp doesnt have lat / long in the database"""  # pylint: disable=line-too-long
         mock_response = MagicMock()
         mock_response.status_code = 200
         mock_response.text = "autocomplete call without location bias success"
