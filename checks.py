@@ -4,6 +4,8 @@ import re
 
 from rapidfuzz import fuzz
 
+from google_api_calls import call_autocomplete
+
 
 def check_topmost(topmost, donee_info_gp):
     """Function to compare the topmost text search API response against the gp information in out database to verify it is the correct gp"""  # pylint: disable=line-too-long
