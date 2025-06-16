@@ -2,3 +2,4 @@ mysql-connector-python
 requests
 rapidfuzz
 dotenv
+givelifylogging @ git+https://github.com/Givelify/structured-logging-python-package.git

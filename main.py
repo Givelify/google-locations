@@ -84,13 +84,15 @@ def process_gp(gp):
             gp["donee_id"],
             top_result["displayName"]["text"],
             gp[
-                "phone_number"
+                "phone"
             ],  # for now just do ph no from our db, but if we get ph no from api use that as public facing one
             top_result["formattedAddress"],
             top_result["location"]["latitude"],
             top_result["location"]["longitude"],
             top_result["id"],
         )
+        mycursor.execute(write_query, vals)
+        return True
     print(
         "not processed as neither autocomplete check passed nor the topmost result from text search does not match"
     )
