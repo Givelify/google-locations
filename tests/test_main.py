@@ -3,13 +3,69 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-from sqlalchemy import Column, Float, Integer, MetaData, String, Table
+from sqlalchemy import Column, Float, Integer, MetaData, String, Table, create_engine
 
 import main
 
 
 class TestGPProcessor(unittest.TestCase):
-    """testing class for process_gp function"""
+    """testing class for main.py"""
+
+    @patch("main.process_gp")
+    def test_main_select_query_with_one_row(self, mock_process_gp):
+        """unit test to check whether the select query works or not"""
+        engine = create_engine("sqlite:///:memory:")
+        metadata = MetaData()
+
+        donee_info = Table(
+            "donee_info",
+            metadata,
+            Column("donee_id", Integer, primary_key=True),
+            Column("name", String),
+            Column("address", String),
+            Column("city", String),
+            Column("state", String),
+            Column("country", String),
+            Column("active", Integer),
+            Column("unregistered", Integer),
+        )
+
+        giving_partner_locations = Table(
+            "giving_partner_locations",
+            metadata,
+            Column("giving_partner_id", Integer, primary_key=True),
+            schema=None,
+        )
+
+        metadata.create_all(engine)
+
+        with engine.begin() as conn:
+            conn.execute(
+                donee_info.insert(),
+                {
+                    "donee_id": 1,
+                    "name": "Test Org",
+                    "address": "123 Main St",
+                    "city": "Metropolis",
+                    "state": "CA",
+                    "country": "USA",
+                    "active": 1,
+                    "unregistered": 0,
+                },
+            )
+
+        with patch("main.create_engine", return_value=engine), patch(
+            "main.Table",
+            side_effect=lambda name, *a, **k: (
+                donee_info if name == "donee_info" else giving_partner_locations
+            ),
+        ):
+            main.main()
+
+        mock_process_gp.assert_called_once()
+        row_data = mock_process_gp.call_args[0][0]
+        self.assertEqual(row_data["donee_id"], 1)
+        self.assertEqual(row_data["country"], "USA")
 
     @patch("main.autocomplete_check")
     def test_process_gp_autocomplete_success(self, mock_autocomplete):
