@@ -1,4 +1,4 @@
-"""Module used for regex functions"""
+"""Module used for the fuzzy checking functions"""
 
 import re
 

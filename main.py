@@ -1,80 +1,87 @@
-"""Module that connects to mysql server"""
+"""Module that connects to mysql server and performs database operations"""
 
-from mysql.connector import connect
+import os
+
+from dotenv import load_dotenv
+from sqlalchemy import MetaData, Table, and_, create_engine, insert, or_, select
 
 from checks import autocomplete_check, check_topmost
 from google_api_calls import text_search
 
+load_dotenv()
+username = os.getenv("database_username")
+password = os.getenv("database_password")
+host = os.getenv("host")
+port = os.getenv("port")
+
 
 def main():
     """Main module"""
-    connection = connect(
-        host="127.0.0.1", user="givelify", passwd="givelify", port="13306"
+
+    engine = create_engine(
+        f"mysql+mysqlconnector://{username}:{password}@{host}:{port}/givelify"
+    )
+    metadata = MetaData()
+
+    donee_info = Table("donee_info", metadata, autoload_with=engine)
+    giving_partner_locations = Table(
+        "giving_partner_locations",
+        metadata,
+        schema="platform",
+        autoload_with=engine,
+    )
+    a = donee_info.alias("a")
+    b = giving_partner_locations.alias("b")
+
+    active = 1
+    unregistered = 0
+
+    query = (
+        select(a)
+        .select_from(a.outerjoin(b, a.c.donee_id == b.c.giving_partner_id))
+        .where(
+            or_(
+                b.c.giving_partner_id is None,
+                and_(
+                    b.c.giving_partner_id is not None,
+                    a.c.active == active,
+                    a.c.unregistered == unregistered,
+                ),
+            )
+        )
+        .limit(1)
     )
 
-    db_cursor = connection.cursor(
-        dictionary=True
-    )  # pylint: disable=redefined-outer-name
-    # pull the non - processed GPs from the database
-    query = """
-    SELECT a.*
-FROM givelify.donee_info AS a
-LEFT JOIN platform.giving_partner_locations AS b
-    ON a.donee_id = b.giving_partner_id
-WHERE b.giving_partner_id IS NULL
-   OR (b.giving_partner_id IS NOT NULL AND a.active = %s AND a.unregistered = %s) LIMIT 5;
-    """
-    vals = (1, 0)
+    with engine.begin() as conn:
+        result = conn.execute(query)
+        dict_data = result.mappings().all()
 
-    db_cursor.execute(query, vals)
-
-    data = db_cursor.fetchall()
-
-    for gp in data:
-        print(
-            f"Processing donee_id: {gp['donee_id']}, name: {gp['name']}, address: {gp["address"]}"
-        )
-        process_gp(gp, db_cursor)
-    connection.commit()
-
-    db_cursor.close()
-    connection.close()
+        for gp in dict_data:
+            print(
+                f"Processing donee_id: {gp['donee_id']}, name: {gp['name']}, address: {gp['address']}"
+            )
+            process_gp(gp, conn, giving_partner_locations)
+    engine.dispose()
 
 
-def process_gp(gp, cursor):
+def process_gp(gp, connection, gp_table):
     """Module that processes each GP"""
     autocomplete_result = autocomplete_check(gp)
     # autocomplete_result is a tuple of type (bool, place_id)
     if autocomplete_result[0]:
-        write_query = (
-            "INSERT INTO platform.giving_partner_locations "
-            "(giving_partner_id, giving_partner_name, phone_number, address, latitude, longitude, api_id) "  # pylint: disable=line-too-long
-            "VALUES (%s, %s, %s, %s, %s, %s, %s)"
+        gp_address = f"{gp['address']}, {gp['city']}, {gp['state']}, {gp['country']}"
+        write_query = insert(gp_table).values(
+            giving_partner_id=gp["donee_id"],
+            phone_number=gp["phone"],
+            address=gp_address,
+            latitude=gp["donee_lat"],
+            longitude=gp["donee_lon"],
+            api_id=autocomplete_result[1],
+            source="Google",
         )
-        gp_address = (
-            gp["address"]
-            + ", "
-            + gp["city"]
-            + ", "
-            + gp["state"]
-            + ", "
-            + gp["country"]
-        )  # for now just add from done_info table, but in future add code to pull city, state and country from autocomplete result to help with cases when those fields are empty or inaccurate in donee_info # pylint: disable=line-too-long
-        vals = (
-            gp["donee_id"],
-            gp["name"],
-            gp["phone"],
-            gp_address,
-            gp["donee_lat"],
-            gp["donee_lon"],
-            autocomplete_result[1],
-        )
-
-        cursor.execute(write_query, vals)
-
-        print("processed")
-
-        return True  # processed successfully, log success
+        connection.execute(write_query)
+        print(f"succesfully processed {gp["name"]}")  # log this sucessfull processing
+        return True
     text_search_results = text_search(gp)
     if len(text_search_results) > 0:
         # get the topmost result from the text search assuming it is the right GP
@@ -85,19 +92,17 @@ def process_gp(gp, cursor):
                 f"not processed as the topmost result from text search {top_result["displayName"]["text"]} does not match gp name {gp["name"]}"  # pylint: disable=line-too-long
             )
             return False
-        write_query = "INSERT INTO platform.giving_partner_locations (giving_partner_id, giving_partner_name, phone_number, address, latitude, longitude, api_id) VALUES (%s, %s, %s, %s, %s, %s, %s)"  # pylint: disable=line-too-long
-        vals = (
-            gp["donee_id"],
-            top_result["displayName"]["text"],
-            gp[
-                "phone"
-            ],  # for now just do ph no from our db, but if we get ph no from api use that as public facing one  # pylint: disable=line-too-long
-            top_result["formattedAddress"],
-            top_result["location"]["latitude"],
-            top_result["location"]["longitude"],
-            top_result["id"],
+        write_query = insert(gp_table).values(
+            giving_partner_id=gp["donee_id"],
+            phone_number=gp["phone"],
+            address=top_result["formattedAddress"],
+            latitude=top_result["location"]["latitude"],
+            longitude=top_result["location"]["longitude"],
+            api_id=top_result["id"],
+            source="Google",
         )
-        cursor.execute(write_query, vals)
+        connection.execute(write_query)
+        print(f"succesfully processed {gp["name"]}")  # log this sucessful processing
         return True
     print(
         "not processed as neither autocomplete check passed nor the topmost result from text search does not match"  # pylint: disable=line-too-long

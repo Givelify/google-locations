@@ -1,4 +1,4 @@
-"""json module for parsing the API responses"""
+"""json module for parsing the google API responses"""
 
 import json
 import os

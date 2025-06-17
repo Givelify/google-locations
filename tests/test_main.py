@@ -3,6 +3,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+from sqlalchemy import Column, Float, Integer, MetaData, String, Table
+
 import main
 
 
@@ -26,16 +28,31 @@ class TestGPProcessor(unittest.TestCase):
 
         # Mock a successful autocomplete check
         mock_autocomplete.return_value = (True, "place_id_123")
-        main.mycursor = MagicMock()
+        metadata = MetaData()
+        mock_table = Table(
+            "giving_partners",
+            metadata,
+            Column("giving_partner_id", Integer),
+            Column("name", String),
+            Column("address", String),
+            Column("city", String),
+            Column("state", String),
+            Column("country", String),
+            Column("phone_number", String),
+            Column("latitude", Float),
+            Column("longitude", Float),
+            Column("api_id", String),
+            Column("source", String),
+        )
+        mock_connection = MagicMock()
 
-        result = main.process_gp(mock_gp, main.mycursor)
+        result = main.process_gp(mock_gp, mock_connection, mock_table)
 
         self.assertTrue(result)
-        main.mycursor.execute.assert_called_once()
-        self.assertIn(
-            "INSERT INTO platform.giving_partner_locations",
-            main.mycursor.execute.call_args[0][0],
-        )
+        mock_connection.execute.assert_called_once()
+        args, _ = mock_connection.execute.call_args
+        params = args[0].compile().params
+        self.assertEqual(params["api_id"], "place_id_123")
 
     @patch("main.autocomplete_check")
     @patch("main.text_search")
@@ -63,15 +80,30 @@ class TestGPProcessor(unittest.TestCase):
         }
         mock_text_search.return_value = [mock_top_result]
 
-        main.mycursor = MagicMock()
-        result = main.process_gp(mock_gp, main.mycursor)
+        metadata = MetaData()
+        mock_table = Table(
+            "giving_partners",
+            metadata,
+            Column("giving_partner_id", Integer),
+            Column("name", String),
+            Column("address", String),
+            Column("city", String),
+            Column("state", String),
+            Column("country", String),
+            Column("phone_number", String),
+            Column("latitude", Float),
+            Column("longitude", Float),
+            Column("api_id", String),
+            Column("source", String),
+        )
+        mock_connection = MagicMock()
+        result = main.process_gp(mock_gp, mock_connection, mock_table)
 
         self.assertTrue(result)
-        main.mycursor.execute.assert_called_once()
-        self.assertIn(
-            "INSERT INTO platform.giving_partner_locations",
-            main.mycursor.execute.call_args[0][0],
-        )
+        mock_connection.execute.assert_called_once()
+        args, _ = mock_connection.execute.call_args
+        params = args[0].compile().params
+        self.assertEqual(params["api_id"], "api_id_456")
 
     @patch("main.autocomplete_check")
     @patch("main.text_search")
@@ -92,12 +124,13 @@ class TestGPProcessor(unittest.TestCase):
         # Both autocomplete and text search fail
         mock_autocomplete.return_value = (False, None)
         mock_text_search.return_value = []  # no hits for text search api call
-        main.mycursor = MagicMock()
+        mock_connection = MagicMock()
+        mock_table = MagicMock(spec=Table)
 
-        result = main.process_gp(mock_gp, main.mycursor)
+        result = main.process_gp(mock_gp, mock_connection, mock_table)
 
         self.assertFalse(result)
-        main.mycursor.execute.assert_not_called()
+        mock_connection.execute.assert_not_called()
 
     @patch("main.autocomplete_check")
     @patch("main.text_search")
@@ -124,12 +157,13 @@ class TestGPProcessor(unittest.TestCase):
             "id": "api_id_456",
         }
         mock_text_search.return_value = [mock_top_result]
-        main.mycursor = MagicMock()
+        mock_connection = MagicMock()
+        mock_table = MagicMock(spec=Table)
 
-        result = main.process_gp(mock_gp, main.mycursor)
+        result = main.process_gp(mock_gp, mock_connection, mock_table)
 
         self.assertFalse(result)
-        main.mycursor.execute.assert_not_called()
+        mock_connection.execute.assert_not_called()
 
 
 if __name__ == "__main__":
