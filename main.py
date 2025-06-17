@@ -3,7 +3,7 @@
 import os
 
 from dotenv import load_dotenv
-from sqlalchemy import MetaData, Table, and_, create_engine, insert, or_, select
+from sqlalchemy import MetaData, Table, and_, create_engine, func, insert, select
 
 from checks import autocomplete_check, check_topmost
 from google_api_calls import text_search
@@ -40,25 +40,22 @@ def main():
         select(a)
         .select_from(a.outerjoin(b, a.c.donee_id == b.c.giving_partner_id))
         .where(
-            or_(
-                b.c.giving_partner_id is None,
-                and_(
-                    b.c.giving_partner_id is not None,
-                    a.c.active == active,
-                    a.c.unregistered == unregistered,
-                ),
+            and_(
+                b.c.giving_partner_id.is_(None),
+                a.c.active == active,
+                a.c.unregistered == unregistered,
+                a.c.country.isnot(None),
+                func.trim(a.c.country) != "",
             )
         )
-        .limit(1)
+        .limit(5)
     )
-
     with engine.begin() as conn:
         result = conn.execute(query)
         dict_data = result.mappings().all()
-
         for gp in dict_data:
             print(
-                f"Processing donee_id: {gp['donee_id']}, name: {gp['name']}, address: {gp['address']}"  # pylint: disable=line-too-long
+                f"Processing donee_id: {gp['donee_id']}, name: {gp['name']}, address: {gp['address']}, {gp["city"]}, {gp["state"]}, {gp["country"]}, {gp['zip']}"  # pylint: disable=line-too-long
             )  # log this
             process_gp(gp, conn, giving_partner_locations)
     engine.dispose()
@@ -69,7 +66,7 @@ def process_gp(gp, connection, gp_table):
     autocomplete_result = autocomplete_check(gp)
     # autocomplete_result is a tuple of type (bool, place_id)
     if autocomplete_result[0]:
-        gp_address = f"{gp['address']}, {gp['city']}, {gp['state']}, {gp['country']}"
+        gp_address = f"{gp['address']}, {gp['city']}, {gp['state']}, {gp['country']}, {gp['zip']}"
         write_query = insert(gp_table).values(
             giving_partner_id=gp["donee_id"],
             phone_number=gp["phone"],
