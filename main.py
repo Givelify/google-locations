@@ -55,7 +55,7 @@ def main():
         dict_data = result.mappings().all()
         for gp in dict_data:
             print(
-                f"Processing donee_id: {gp['donee_id']}, name: {gp['name']}, address: {gp['address']}, {gp["city"]}, {gp["state"]}, {gp["country"]}, {gp['zip']}"  # pylint: disable=line-too-long
+                f"Processing donee_id: {gp['donee_id']}, name: {gp['name']}, address: {gp['address']}, {gp["city"]}, {gp["state"]}, {gp["country"]}"  # pylint: disable=line-too-long
             )  # log this
             process_gp(gp, conn, giving_partner_locations)
     engine.dispose()
@@ -66,7 +66,7 @@ def process_gp(gp, connection, gp_table):
     autocomplete_result = autocomplete_check(gp)
     # autocomplete_result is a tuple of type (bool, place_id)
     if autocomplete_result[0]:
-        gp_address = f"{gp['address']}, {gp['city']}, {gp['state']}, {gp['country']}, {gp['zip']}"
+        gp_address = f"{gp['address']}, {gp['city']}, {gp['state']}, {gp['country']}"
         write_query = insert(gp_table).values(
             giving_partner_id=gp["donee_id"],
             phone_number=gp["phone"],
