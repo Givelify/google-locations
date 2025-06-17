@@ -58,8 +58,8 @@ def main():
 
         for gp in dict_data:
             print(
-                f"Processing donee_id: {gp['donee_id']}, name: {gp['name']}, address: {gp['address']}"
-            )
+                f"Processing donee_id: {gp['donee_id']}, name: {gp['name']}, address: {gp['address']}"  # pylint: disable=line-too-long
+            )  # log this
             process_gp(gp, conn, giving_partner_locations)
     engine.dispose()
 
