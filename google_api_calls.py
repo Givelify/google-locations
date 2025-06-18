@@ -12,9 +12,9 @@ api_key = os.getenv("google_api_key")
 
 def text_search(gp):
     """Function calling text search API"""
-    gp_name = gp["name"]
-    gp_city = gp["city"]
-    gp_state = gp["state"]
+    gp_name = gp.name
+    gp_city = gp.city
+    gp_state = gp.state
     input_string = gp_name + ", " + gp_city + ", " + gp_state
     base_url = "https://places.googleapis.com/v1/places:searchText"
 
@@ -41,7 +41,7 @@ def text_search(gp):
 
 def call_autocomplete(gp):
     """function calling the Autocomplete API"""
-    gp_name = gp["name"]
+    gp_name = gp.name
     base_url = "https://places.googleapis.com/v1/places:autocomplete"
 
     params = {"X-Goog-Api-Key": api_key, "Content-Type": "application/json"}
@@ -50,12 +50,10 @@ def call_autocomplete(gp):
         "input": gp_name,
     }
 
-    if (gp["donee_lat"] and gp["donee_lat"] != 0) and (
-        gp["donee_lon"] and gp["donee_lon"] != 0
-    ):
+    if (gp.latitude and gp.latitude != 0) and (gp.longitude and gp.longitude != 0):
         body["locationBias"] = {
             "circle": {
-                "center": {"latitude": gp["donee_lat"], "longitude": gp["donee_lon"]},
+                "center": {"latitude": gp.latitude, "longitude": gp.longitude},
                 "radius": 50000.0,
             }
         }

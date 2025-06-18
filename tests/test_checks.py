@@ -14,7 +14,6 @@ from checks import (
 class TestChecks(unittest.TestCase):
     """Unit tests for the checks module"""
 
-    # write a unit test for the below function
     @patch("checks.fuzz.ratio", return_value=95)
     def test_check_topmost(self, mock_ratio):
         """Test the check_topmost function"""
@@ -82,7 +81,6 @@ class TestChecks(unittest.TestCase):
         with self.assertRaises(Exception):
             normalize_address("630 W 28th St, IN, America")
 
-    # @patch("checks.fuzz.ratio", return_value=95)
     def test_fuzzy_address_check(self):
         """Test the fuzzy_address_check function"""
         api_address1 = "123 Main St, Springfield, USA"
@@ -91,7 +89,6 @@ class TestChecks(unittest.TestCase):
             fuzzy_address_check(api_address1, gp_address1)
         api_address2 = "123 Main St, Springfield, Illinois, USA"
         self.assertTrue(fuzzy_address_check(api_address2, gp_address1))
-        # mock_ratio.assert_called_once()
 
     @patch(
         "checks.call_autocomplete",
@@ -124,7 +121,6 @@ class TestChecks(unittest.TestCase):
             ]
         },
     )
-    # @patch("checks.fuzzy_address_check", return_value=True)
     def test_autocomplete_check_success(
         self, mock_call_autocomplete
     ):  # pylint: disable=unused-argument

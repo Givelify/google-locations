@@ -126,7 +126,6 @@ class TestGPProcessor(unittest.TestCase):
             "donee_lon": 78.90,
         }
 
-        # Simulate failed autocomplete, fallback to text search
         mock_autocomplete.return_value = (False, None)
         mock_top_result = {
             "displayName": {"text": "Faith Center"},
@@ -177,9 +176,8 @@ class TestGPProcessor(unittest.TestCase):
             "donee_lon": 45.00,
         }
 
-        # Both autocomplete and text search fail
         mock_autocomplete.return_value = (False, None)
-        mock_text_search.return_value = []  # no hits for text search api call
+        mock_text_search.return_value = []
         mock_connection = MagicMock()
         mock_table = MagicMock(spec=Table)
 
@@ -204,7 +202,6 @@ class TestGPProcessor(unittest.TestCase):
             "donee_lon": 45.00,
         }
 
-        # Both autocomplete and text search fail
         mock_autocomplete.return_value = (False, None)
         mock_top_result = {
             "displayName": {"text": "Grace center"},

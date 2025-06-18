@@ -10,8 +10,8 @@ from google_api_calls import call_autocomplete
 def check_topmost(topmost, donee_info_gp):
     """Function to compare the topmost text search API response against the gp information in out database to verify it is the correct gp"""  # pylint: disable=line-too-long
     topmost_name = topmost["displayName"]["text"].lower()
-    print(f"Checking topmost result {topmost_name} for: {donee_info_gp['name']}")
-    gp_name = donee_info_gp["name"].lower()
+    print(f"Checking topmost result {topmost_name} for: {donee_info_gp.name}")
+    gp_name = donee_info_gp.name.lower()
     if fuzz.ratio(gp_name, topmost_name) < 90:
         print(
             f"Topmost name {topmost_name} does not match GP name {gp_name}, skipping."
@@ -107,15 +107,15 @@ def autocomplete_check(donee_info_gp):
         filter(
             None,
             [
-                donee_info_gp.get("address"),
-                donee_info_gp.get("city"),
-                donee_info_gp.get("state"),
-                donee_info_gp.get("country"),
+                donee_info_gp.address,
+                donee_info_gp.city,
+                donee_info_gp.state,
+                donee_info_gp.country,
             ],
         )
     )
     print(
-        f"Autocomplete check for: {donee_info_gp['name']}, address: {gp_address}"
+        f"Autocomplete check for: {donee_info_gp.name}, address: {gp_address}"
     )  # log this message
     try:
         autocomplete_results = call_autocomplete(donee_info_gp)
