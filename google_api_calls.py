@@ -1,13 +1,10 @@
 """json module for parsing the google API responses"""
 
 import json
-import os
 
 import requests
-from dotenv import load_dotenv
 
-load_dotenv()
-api_key = os.getenv("google_api_key")
+from config import Config
 
 
 def text_search(gp):
@@ -19,7 +16,7 @@ def text_search(gp):
     base_url = "https://places.googleapis.com/v1/places:searchText"
 
     params = {
-        "X-Goog-Api-Key": api_key,
+        "X-Goog-Api-Key": Config.api_key,
         "Content-Type": "application/json",
         "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location",
     }
@@ -44,7 +41,7 @@ def call_autocomplete(gp):
     gp_name = gp.name
     base_url = "https://places.googleapis.com/v1/places:autocomplete"
 
-    params = {"X-Goog-Api-Key": api_key, "Content-Type": "application/json"}
+    params = {"X-Goog-Api-Key": Config.api_key, "Content-Type": "application/json"}
 
     body = {
         "input": gp_name,

@@ -1,25 +1,23 @@
 """Module that connects to mysql server and performs database operations"""
 
-import os
-
-from dotenv import load_dotenv
 from sqlalchemy import and_, func, select
 
 from checks import autocomplete_check, check_topmost
+from config import Config
 from google_api_calls import text_search
 from models import GivingPartnerLocations, GivingPartners, get_engine, get_session
-
-load_dotenv()
-DB_USERNAME = os.getenv("DB_USERNAME")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_HOST = os.getenv("DB_HOST")
-DB_PORT = os.getenv("DB_PORT")
 
 
 def main():
     """Main module"""
 
-    engine = get_engine(DB_HOST, DB_PORT, DB_USERNAME, DB_PASSWORD, "platform")
+    engine = get_engine(
+        Config.DB_HOST,
+        Config.DB_PORT,
+        Config.DB_USER,
+        Config.DB_PASSWORD,
+        Config.DB_NAME,
+    )
 
     active = 1
     unregistered = 0
