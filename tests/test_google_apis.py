@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from google_api_calls import call_autocomplete, text_search
-from models import GivingPartnerLocations, GivingPartners
+from models import GivingPartners
 
 
 class TestApiFunctions(unittest.TestCase):

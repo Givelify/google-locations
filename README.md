@@ -1,3 +1,8 @@
 # google_locations
 Project that retrieves google locations of GPs
-copy the contents of .env.example file and add database credentials and google api key to run this project
+Instructions on how to run the script:
+1. Setup the "platform" database locally by the running the migrations for it: https://github.com/Givelify/platform-db-migrator
+2. Copy the contents of .env.example file and add database credentials and google api key to run this project
+3. Setup a virtual environment
+4. Run 'pip install -r requirements.txt' in terminal
+5. Run the main script using "python main.py"

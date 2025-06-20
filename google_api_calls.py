@@ -17,7 +17,7 @@ def text_search(gp):
     base_url = "https://places.googleapis.com/v1/places:searchText"
 
     params = {
-        "X-Goog-Api-Key": Config.api_key,
+        "X-Goog-Api-Key": Config.GOOGLE_API_KEY,
         "Content-Type": "application/json",
         "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.location",
     }
@@ -43,7 +43,10 @@ def call_autocomplete(gp):
     gp_name = gp.name
     base_url = "https://places.googleapis.com/v1/places:autocomplete"
 
-    params = {"X-Goog-Api-Key": Config.api_key, "Content-Type": "application/json"}
+    params = {
+        "X-Goog-Api-Key": Config.GOOGLE_API_KEY,
+        "Content-Type": "application/json",
+    }
 
     body = {
         "input": gp_name,

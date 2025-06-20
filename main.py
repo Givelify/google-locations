@@ -42,7 +42,7 @@ def main():
                 func.trim(gp.country) != "",
             )
         )
-        .limit(3)
+        .limit(1)
     )
     try:
         with get_session(engine) as session:

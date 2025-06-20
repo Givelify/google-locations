@@ -1,3 +1,4 @@
+# pylint: disable=too-many-locals
 """Module used for the fuzzy checking functions"""
 
 import re
@@ -9,12 +10,16 @@ from google_api_calls import call_autocomplete
 
 
 def check_topmost(topmost, donee_info_gp):
-    """Function to compare the topmost text search API response against the gp information in out database to verify it is the correct gp"""  # pylint: disable=line-too-long
+    """Function to compare the topmost text search API response against
+    the gp information in out database to verify it is the correct gp"""  # pylint: disable=line-too-long
     topmost_name = topmost["displayName"]["text"].lower()
     print(f"Checking topmost result {topmost_name} for: {donee_info_gp.name}")
     gp_name = donee_info_gp.name.lower()
     similarity_score = fuzz.ratio(gp_name, topmost_name)
-    if similarity_score < Config.topmost_name_matching_threshold:
+    # for now just go with the assumption that the topmost one is good
+    # if the simlarity score between its name and the giving partner name
+    # in our database is more than 90
+    if similarity_score < Config.TOPMOST_NAME_MATCHING_THRESHOLD:
         print(
             f"Topmost name {topmost_name} does not match GP name {gp_name} as similarity score is {similarity_score}, skipping."
         )
@@ -23,9 +28,6 @@ def check_topmost(topmost, donee_info_gp):
         f"topmost result {topmost["displayName"]["text"]} with address {topmost["formattedAddress"]} matched giving partner name {donee_info_gp.name} with similarity score of {similarity_score}"
     )
     return True
-
-
-# for now just go with the assumption that the topmost one is good if the name matches more than 90
 
 
 def normalize_address(address):
@@ -56,9 +58,6 @@ def normalize_address(address):
     return parsed_address
 
 
-# pylint: disable=too-many-locals
-
-
 def fuzzy_address_check(api_address, gp_address):
     """Function that compares the address returned by autocomplete API
     and the gp address in our database"""
@@ -72,7 +71,7 @@ def fuzzy_address_check(api_address, gp_address):
         preprocessed_gp_address = normalize_address(gp_address)
     except ValueError as f:
         raise ValueError(
-            f"api_address: {api_address} {f}"
+            f"gp_address: {gp_address} {f}"
         ) from f  # error / exception already logged in normalize_address() function
 
     # weights for different components of the address, we want to place more weight on street comparision pylint: disable=line-too-long
@@ -146,7 +145,7 @@ def autocomplete_check(donee_info_gp):
                 print(
                     f"auto address: {autocomplete_address}, donee_info address: {gp_address}, sim_score: {similarity_score}"  # pylint: disable=line-too-long
                 )
-                if similarity_score > Config.autocomplete_address_matching_threshold:
+                if similarity_score > Config.AUTOCOMPLETE_ADDRESS_MATCHING_THRESHOLD:
                     return True, suggestion.get("placePrediction", {}).get(
                         "placeId", ""
                     )

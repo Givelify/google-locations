@@ -15,6 +15,6 @@ class Config:
     DB_USER = os.getenv("DB_USERNAME")
     DB_PASSWORD = os.getenv("DB_PASSWORD")
     DB_NAME = os.getenv("DB_NAME")
-    api_key = os.getenv("google_api_key")
-    topmost_name_matching_threshold = 90
-    autocomplete_address_matching_threshold = 80
+    GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+    TOPMOST_NAME_MATCHING_THRESHOLD = 90
+    AUTOCOMPLETE_ADDRESS_MATCHING_THRESHOLD = 80
