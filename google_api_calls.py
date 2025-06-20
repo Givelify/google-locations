@@ -3,6 +3,7 @@
 import json
 
 import requests
+from requests.exceptions import RequestException
 
 from config import Config
 
@@ -24,16 +25,17 @@ def text_search(gp):
     body = {
         "textQuery": input_string,
     }
-    response = requests.post(
-        base_url, headers=params, data=json.dumps(body), timeout=10
-    )
-    if response.status_code == 200:
+    try:
+        response = requests.post(
+            base_url, headers=params, data=json.dumps(body), timeout=10
+        )
+        response.raise_for_status()
         data = response.json()
-    else:
-        # include an error log here
-        print(response.text)
-        return None
-    return data.get("places", [])
+        return data.get("places", [])
+    except RequestException as e:
+        raise RuntimeError(
+            f"google places API call failed: {e}"
+        ) from e  # error log this
 
 
 def call_autocomplete(gp):
@@ -55,15 +57,14 @@ def call_autocomplete(gp):
             }
         }
 
-    response = requests.post(
-        base_url, headers=params, data=json.dumps(body), timeout=10
-    )
-
-    if response.status_code == 200:
+    try:
+        response = requests.post(
+            base_url, headers=params, data=json.dumps(body), timeout=10
+        )
+        response.raise_for_status()
         data = response.json()
-    else:
-        # include an ERROR log here
-        print(response.text)
-        return None
-
-    return data
+        return data
+    except RequestException as e:
+        raise RuntimeError(
+            f"google places API call failed: {e}"
+        ) from e  # error log this

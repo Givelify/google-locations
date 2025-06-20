@@ -9,6 +9,7 @@ from checks import (
     fuzzy_address_check,
     normalize_address,
 )
+from models import GivingPartners
 
 
 class TestChecks(unittest.TestCase):
@@ -21,7 +22,20 @@ class TestChecks(unittest.TestCase):
             "displayName": {"text": "test GP"},
             "placeId": "place1_id",
         }
-        donee_info_gp = {"name": "Test gp"}
+        donee_info_gp = GivingPartners(
+            name="test gp",
+            city="Peaceville",
+            state="PV",
+            address="789 Peace Ave",
+            latitude=90.00,
+            longitude=45.00,
+            phone="1231231234",
+            country="USA",
+            zip="45678",
+            active=1,
+            unregistered=0,
+            id=3,
+        )
         result = check_topmost(topmost, donee_info_gp)
         self.assertTrue(result)
         mock_ratio.assert_called_once_with("test gp", "test gp")
@@ -125,33 +139,54 @@ class TestChecks(unittest.TestCase):
         self, mock_call_autocomplete
     ):  # pylint: disable=unused-argument
         """Test the autocomplete_check function"""
-        donee_info_gp = {
-            "name": "Test GP",
-            "address": "845 W Strieff Ln",
-            "city": "Glenwood",
-            "state": "IL",
-            "country": "United States",
-        }
+        donee_info_gp = GivingPartners(
+            name="Test GP",
+            city="Glenwood",
+            state="IL",
+            address="845 W Strieff Ln",
+            latitude=90.00,
+            longitude=45.00,
+            phone="1231231234",
+            country="United States of America",
+            zip="45678",
+            active=1,
+            unregistered=0,
+            id=3,
+        )
         result = autocomplete_check(donee_info_gp)
         self.assertTupleEqual(result, (True, "place1_id"))
 
-        donee_info_gp2 = {
-            "name": "Test GP",
-            "address": "845 Bakers Ln",
-            "city": "Glenwood",
-            "state": "IL",
-            "country": "United States",
-        }
+        donee_info_gp2 = GivingPartners(
+            name="Test GP",
+            city="Glenwood",
+            state="IL",
+            address="845 Bakers Ln",
+            latitude=90.00,
+            longitude=45.00,
+            phone="1231231234",
+            country="United States",
+            zip="45678",
+            active=1,
+            unregistered=0,
+            id=3,
+        )
         result2 = autocomplete_check(donee_info_gp2)
         self.assertTupleEqual(result2, (False, ""))
 
-        donee_info_gp3 = {
-            "name": "Test GP",
-            "address": "845 Bakers Ln",
-            "city": "",
-            "state": "IL",
-            "country": "United States",
-        }
+        donee_info_gp3 = GivingPartners(
+            name="Test GP",
+            city="",
+            state="IL",
+            address="845 Bakers Ln",
+            latitude=90.00,
+            longitude=45.00,
+            phone="1231231234",
+            country="United States",
+            zip="45678",
+            active=1,
+            unregistered=0,
+            id=3,
+        )
         result3 = autocomplete_check(donee_info_gp3)
         self.assertTupleEqual(result3, (False, ""))
 

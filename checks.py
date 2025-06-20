@@ -4,6 +4,7 @@ import re
 
 from rapidfuzz import fuzz
 
+from config import Config
 from google_api_calls import call_autocomplete
 
 
@@ -12,11 +13,15 @@ def check_topmost(topmost, donee_info_gp):
     topmost_name = topmost["displayName"]["text"].lower()
     print(f"Checking topmost result {topmost_name} for: {donee_info_gp.name}")
     gp_name = donee_info_gp.name.lower()
-    if fuzz.ratio(gp_name, topmost_name) < 90:
+    similarity_score = fuzz.ratio(gp_name, topmost_name)
+    if similarity_score < Config.topmost_name_matching_threshold:
         print(
-            f"Topmost name {topmost_name} does not match GP name {gp_name}, skipping."
+            f"Topmost name {topmost_name} does not match GP name {gp_name} as similarity score is {similarity_score}, skipping."
         )
         return False
+    print(
+        f"topmost result {topmost["displayName"]["text"]} with address {topmost["formattedAddress"]} matched giving partner name {donee_info_gp.name} with similarity score of {similarity_score}"
+    )
     return True
 
 
@@ -25,8 +30,8 @@ def check_topmost(topmost, donee_info_gp):
 
 def normalize_address(address):
     """the Normalization function is written to preprocesses the address strings,
-    ensuring they are ready for comparision, and also split the adderss
-    into street, city, state and country components so that more different
+    ensuring they are ready for comparision, and also to split the adderss
+    into street, city, state and country components so that different
     weights can be used for each part of the address during comparision
     """
     country_replacements = {
@@ -141,7 +146,7 @@ def autocomplete_check(donee_info_gp):
                 print(
                     f"auto address: {autocomplete_address}, donee_info address: {gp_address}, sim_score: {similarity_score}"  # pylint: disable=line-too-long
                 )
-                if similarity_score > 80:
+                if similarity_score > Config.autocomplete_address_matching_threshold:
                     return True, suggestion.get("placePrediction", {}).get(
                         "placeId", ""
                     )

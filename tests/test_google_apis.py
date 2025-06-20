@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import MagicMock, patch
 
 from google_api_calls import call_autocomplete, text_search
+from models import GivingPartnerLocations, GivingPartners
 
 
 class TestApiFunctions(unittest.TestCase):
@@ -33,11 +34,20 @@ class TestApiFunctions(unittest.TestCase):
         }
         mock_post.return_value = mock_response
 
-        gp_data = {
-            "name": "Test Place",
-            "city": "test city",
-            "state": "Test State",
-        }
+        gp_data = GivingPartners(
+            name="Test Place",
+            city="test city",
+            state="Test State",
+            address="484 test Rd",
+            latitude=34.4254524,
+            longitude=-42.43554,
+            phone="123-456-7890",
+            country="USA",
+            zip="45678",
+            active=1,
+            unregistered=0,
+            id=1,
+        )
         result = text_search(gp_data)
 
         self.assertGreaterEqual(len(result), 1, "text_search call success")
@@ -53,11 +63,20 @@ class TestApiFunctions(unittest.TestCase):
         mock_response.text = "Error: Something went wrong"
         mock_post.return_value = mock_response
 
-        gp_data = {
-            "name": "Test Place",
-            "city": "test city",
-            "state": "Test State",
-        }
+        gp_data = GivingPartners(
+            name="Test Place",
+            city="test city",
+            state="Test State",
+            address="484 test Rd",
+            latitude=34.4254524,
+            longitude=-42.43554,
+            phone="123-456-7890",
+            country="USA",
+            zip="45678",
+            active=1,
+            unregistered=0,
+            id=1,
+        )
 
         result = text_search(gp_data)
         self.assertIsNone(result)
@@ -97,8 +116,20 @@ class TestApiFunctions(unittest.TestCase):
         }
         mock_post.return_value = mock_response
 
-        gp_data = {"name": "Test church", "donee_lat": 40.7128, "donee_lon": -74.0060}
-
+        gp_data = GivingPartners(
+            name="Test Place",
+            city="test city",
+            state="Test State",
+            address="484 test Rd",
+            latitude=34.4254524,
+            longitude=-42.43554,
+            phone="123-456-7890",
+            country="USA",
+            zip="45678",
+            active=1,
+            unregistered=0,
+            id=1,
+        )
         result = call_autocomplete(gp_data)
 
         self.assertEqual(
@@ -116,7 +147,20 @@ class TestApiFunctions(unittest.TestCase):
         mock_response.text = "Error: Something went wrong"
         mock_post.return_value = mock_response
 
-        gp_data = {"name": "Test Place", "donee_lat": 40.7128, "donee_lon": -74.0060}
+        gp_data = GivingPartners(
+            name="Test Place",
+            city="test city",
+            state="Test State",
+            address="484 test Rd",
+            latitude=34.4254524,
+            longitude=-42.43554,
+            phone="123-456-7890",
+            country="USA",
+            zip="45678",
+            active=1,
+            unregistered=0,
+            id=1,
+        )
 
         result = call_autocomplete(gp_data)
 
@@ -158,11 +202,23 @@ class TestApiFunctions(unittest.TestCase):
         }
         mock_post.return_value = mock_response
 
-        gp_data = {"name": "Test Place", "donee_lat": 0, "donee_lon": 0}
+        gp_data = GivingPartners(
+            name="Test Place",
+            city="test city",
+            state="Test State",
+            address="484 test Rd",
+            latitude=0,
+            longitude=0,
+            phone="123-456-7890",
+            country="USA",
+            zip="45678",
+            active=1,
+            unregistered=0,
+            id=1,
+        )
 
         result = call_autocomplete(gp_data)
 
-        # Check that the result is as expected
         self.assertEqual(
             result["suggestions"][0]["placePrediction"]["structuredFormat"][
                 "secondaryText"

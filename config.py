@@ -2,6 +2,10 @@
 
 import os
 
+from dotenv import load_dotenv
+
+load_dotenv()
+
 
 class Config:
     """config file"""
@@ -12,3 +16,5 @@ class Config:
     DB_PASSWORD = os.getenv("DB_PASSWORD")
     DB_NAME = os.getenv("DB_NAME")
     api_key = os.getenv("google_api_key")
+    topmost_name_matching_threshold = 90
+    autocomplete_address_matching_threshold = 80
