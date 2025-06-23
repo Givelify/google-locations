@@ -11,7 +11,7 @@ from google_api_calls import call_autocomplete
 
 def check_topmost(topmost, donee_info_gp):
     """Function to compare the topmost text search API response against
-    the gp information in out database to verify it is the correct gp"""  # pylint: disable=line-too-long
+    the gp information in our database to verify it is the correct gp"""  # pylint: disable=line-too-long
     topmost_name = topmost["displayName"]["text"].lower()
     print(f"Checking topmost result {topmost_name} for: {donee_info_gp.name}")
     gp_name = donee_info_gp.name.lower()
