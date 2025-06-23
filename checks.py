@@ -67,7 +67,7 @@ def fuzzy_address_check(api_address, gp_address):
     except ValueError as e:
         raise ValueError(
             f"api_address: {api_address} or gp_address: {gp_address} error {e}"
-        ) from e  # error / exception already logged in normalize_address() function
+        ) from e
 
     # weights for different components of the address, we want to place more weight on street comparision pylint: disable=line-too-long
     street_weight = 0.5
