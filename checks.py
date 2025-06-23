@@ -53,7 +53,7 @@ def normalize_address(address):
     else:
         print(
             f"{address} not complete error"
-        )  # add an error log here stating that the DB is missing city, state or country
+        )
         raise ValueError(f"address {address} not complete error")
     return parsed_address
 
