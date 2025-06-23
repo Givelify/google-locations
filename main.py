@@ -52,19 +52,19 @@ def main():
                 print(
                     f"Processing donee_id: {giving_partner.id}, name: {giving_partner.name}, address: {giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
                 )  # log this
-                process_gp(giving_partner, session, gpl)
+                process_gp(giving_partner, session)
     except SQLAlchemyError as e:
         print(f"failed to create session: {e}")  # error log this
     engine.dispose()
 
 
-def process_gp(giving_partner, session, gp_table):
+def process_gp(giving_partner, session):
     """Module that processes each GP"""
     autocomplete_result = autocomplete_check(giving_partner)
     # autocomplete_result is a tuple of type (bool, place_id)
-    if autocomplete_result[0]:
+    if autocomplete_result:
         gp_address = f"{giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"
-        gp_info = gp_table(
+        gp_info = gpl(
             giving_partner_id=giving_partner.id,
             phone_number=giving_partner.phone,
             address=gp_address,
@@ -82,7 +82,7 @@ def process_gp(giving_partner, session, gp_table):
         except SQLAlchemyError as e:
             print(f"sqlalchemy insertion error: {e}")  # error log this
             raise
-        return True
+        return
     try:
         text_search_results = text_search(giving_partner)
     except RuntimeError as e:
@@ -92,35 +92,34 @@ def process_gp(giving_partner, session, gp_table):
     if len(text_search_results) > 0:
         # get the topmost result from the text search assuming it is the right GP
         top_result = text_search_results[0]
-        valid = check_topmost(top_result, giving_partner)
-        if not valid:
+        if not check_topmost(top_result, giving_partner):
             print(
                 f"not processed as the topmost result from text search {top_result["displayName"]["text"]} does not match gp name {giving_partner.name}"  # pylint: disable=line-too-long
             )
-            return False
-        gp_info = gp_table(
-            giving_partner_id=giving_partner.id,
-            phone_number=giving_partner.phone,
-            address=top_result["formattedAddress"],
-            latitude=top_result["location"]["latitude"],
-            longitude=top_result["location"]["longitude"],
-            api_id=top_result["id"],
-            source="Google",
-        )
+            return
         try:
+            gp_info = gpl(
+                giving_partner_id=giving_partner.id,
+                phone_number=giving_partner.phone,
+                address=top_result["formattedAddress"],
+                latitude=top_result["location"]["latitude"],
+                longitude=top_result["location"]["longitude"],
+                api_id=top_result["id"],
+                source="Google",
+            )
             session.add(gp_info)
             session.commit()
             print(
                 f"succesfully processed {giving_partner.name}"
             )  # log this sucessful processing
-        except SQLAlchemyError as e:
-            print(f"sqlalchemy insertion error: {e}")  # error log this
+        except (SQLAlchemyError, KeyError, TypeError) as e:
+            print(f"Insertion failed for {giving_partner.name}: {e}")  # log error
             raise
-        return True
+        return
     print(
         "not processed as neither autocomplete check passed nor the topmost result from text search does not match"  # pylint: disable=line-too-long
     )  # log the failure to process the GP
-    return False
+    return
 
 
 if "__main__" == __name__:

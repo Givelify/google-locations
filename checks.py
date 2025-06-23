@@ -120,7 +120,7 @@ def autocomplete_check(donee_info_gp):
         autocomplete_results = call_autocomplete(donee_info_gp)
     except Exception as e:  # pylint: disable=broad-exception-caught
         print(f"Error calling autocomplete API: {e}")  # error log this
-        return False, ""
+        return None
     if len(autocomplete_results) > 0:
         for suggestion in autocomplete_results.get("suggestions", []):
             autocomplete_address = (
@@ -136,12 +136,10 @@ def autocomplete_check(donee_info_gp):
                     )
                 except ValueError as e:  # pylint: disable=unused-variable
                     # Error log this, say skipping autocomplete check because of e
-                    return False, ""
+                    continue
                 print(
                     f"auto address: {autocomplete_address}, donee_info address: {gp_address}, sim_score: {similarity_score}"  # pylint: disable=line-too-long
                 )
                 if similarity_score > Config.AUTOCOMPLETE_ADDRESS_MATCHING_THRESHOLD:
-                    return True, suggestion.get("placePrediction", {}).get(
-                        "placeId", ""
-                    )
-    return False, ""  # log this stating autocomplete check failed for gp
+                    return suggestion.get("placePrediction", {}).get("placeId", "")
+    return None  # log this stating autocomplete check failed for gp
