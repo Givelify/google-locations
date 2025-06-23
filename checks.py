@@ -54,7 +54,7 @@ def normalize_address(address):
         print(
             f"{address} not complete error"
         )  # add an error log here stating that the DB is missing city, state or country
-        raise ValueError("address not complete error:")
+        raise ValueError(f"address {address} not complete error")
     return parsed_address
 
 
@@ -63,16 +63,11 @@ def fuzzy_address_check(api_address, gp_address):
     and the gp address in our database"""
     try:
         preprocessed_api_address = normalize_address(api_address)
+        preprocessed_gp_address = normalize_address(gp_address)
     except ValueError as e:
         raise ValueError(
-            f"api_address: {api_address} {e}"
+            f"api_address: {api_address} or gp_address: {gp_address} error {e}"
         ) from e  # error / exception already logged in normalize_address() function
-    try:
-        preprocessed_gp_address = normalize_address(gp_address)
-    except ValueError as f:
-        raise ValueError(
-            f"gp_address: {gp_address} {f}"
-        ) from f  # error / exception already logged in normalize_address() function
 
     # weights for different components of the address, we want to place more weight on street comparision pylint: disable=line-too-long
     street_weight = 0.5
