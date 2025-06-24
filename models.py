@@ -15,7 +15,6 @@ class GivingPartnerLocations(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     giving_partner_id = Column(Integer, index=True)
-    phone_number = Column(String(50))
     address = Column(String(255), nullable=False)
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)

@@ -66,7 +66,6 @@ def process_gp(giving_partner, session):
         gp_address = f"{giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"
         gp_info = gpl(
             giving_partner_id=giving_partner.id,
-            phone_number=giving_partner.phone,
             address=gp_address,
             latitude=giving_partner.latitude,
             longitude=giving_partner.longitude,
@@ -100,7 +99,6 @@ def process_gp(giving_partner, session):
         try:
             gp_info = gpl(
                 giving_partner_id=giving_partner.id,
-                phone_number=giving_partner.phone,
                 address=top_result["formattedAddress"],
                 latitude=top_result["location"]["latitude"],
                 longitude=top_result["location"]["longitude"],
