@@ -11,7 +11,7 @@ from google_api_calls import call_autocomplete
 
 def check_topmost(topmost, donee_info_gp):
     """Function to compare the topmost text search API response against
-    the gp information in out database to verify it is the correct gp"""  # pylint: disable=line-too-long
+    the gp information in our database to verify it is the correct gp"""  # pylint: disable=line-too-long
     topmost_name = topmost["displayName"]["text"].lower()
     print(f"Checking topmost result {topmost_name} for: {donee_info_gp.name}")
     gp_name = donee_info_gp.name.lower()
@@ -53,7 +53,7 @@ def normalize_address(address):
     else:
         print(
             f"{address} not complete error"
-        )  # add an error log here stating that the DB is missing city, state or country
+        )
         raise ValueError(f"address {address} not complete error")
     return parsed_address
 
@@ -67,7 +67,7 @@ def fuzzy_address_check(api_address, gp_address):
     except ValueError as e:
         raise ValueError(
             f"api_address: {api_address} or gp_address: {gp_address} error {e}"
-        ) from e  # error / exception already logged in normalize_address() function
+        ) from e
 
     # weights for different components of the address, we want to place more weight on street comparision pylint: disable=line-too-long
     street_weight = 0.5
