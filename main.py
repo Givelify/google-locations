@@ -52,16 +52,19 @@ def main():
                 print(
                     f"Processing donee_id: {giving_partner.id}, name: {giving_partner.name}, address: {giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
                 )  # log this
-                process_gp(giving_partner, session)
+                try:
+                    process_gp(giving_partner, session)
+                except (KeyError, TypeError) as e:
+                    print(f"Error in process_gp(): {e}")  # error log this
     except SQLAlchemyError as e:
         print(f"failed to create session: {e}")  # error log this
-    engine.dispose()
+    finally:
+        engine.dispose()
 
 
 def process_gp(giving_partner, session):
     """Module that processes each GP"""
     autocomplete_result = autocomplete_check(giving_partner)
-    # autocomplete_result is a tuple of type (bool, place_id)
     if autocomplete_result:
         gp_address = f"{giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"
         gp_info = gpl(

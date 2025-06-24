@@ -51,9 +51,7 @@ def normalize_address(address):
         parsed_address["state"] = address_parts[-2]
         parsed_address["city"] = address_parts[-3]
     else:
-        print(
-            f"{address} not complete error"
-        )
+        print(f"{address} not complete error")
         raise ValueError(f"address {address} not complete error")
     return parsed_address
 
@@ -141,5 +139,5 @@ def autocomplete_check(donee_info_gp):
                     f"auto address: {autocomplete_address}, donee_info address: {gp_address}, sim_score: {similarity_score}"  # pylint: disable=line-too-long
                 )
                 if similarity_score > Config.AUTOCOMPLETE_ADDRESS_MATCHING_THRESHOLD:
-                    return suggestion.get("placePrediction", {}).get("placeId", "")
+                    return suggestion.get("placePrediction", {}).get("placeId", None)
     return None  # log this stating autocomplete check failed for gp
