@@ -21,6 +21,7 @@ class TestChecks(unittest.TestCase):
         topmost = {
             "displayName": {"text": "test GP"},
             "placeId": "place1_id",
+            "formattedAddress": "889 West blvd, Peaceville, PV, USA, 45688",
         }
         donee_info_gp = GivingPartners(
             name="test gp",
@@ -154,7 +155,7 @@ class TestChecks(unittest.TestCase):
             id=3,
         )
         result = autocomplete_check(donee_info_gp)
-        self.assertTupleEqual(result, (True, "place1_id"))
+        self.assertEqual(result, "place1_id")
 
         donee_info_gp2 = GivingPartners(
             name="Test GP",
@@ -171,7 +172,7 @@ class TestChecks(unittest.TestCase):
             id=3,
         )
         result2 = autocomplete_check(donee_info_gp2)
-        self.assertTupleEqual(result2, (False, ""))
+        self.assertIsNone(result2)
 
         donee_info_gp3 = GivingPartners(
             name="Test GP",
@@ -188,7 +189,7 @@ class TestChecks(unittest.TestCase):
             id=3,
         )
         result3 = autocomplete_check(donee_info_gp3)
-        self.assertTupleEqual(result3, (False, ""))
+        self.assertIsNone(result3)
 
 
 if __name__ == "__main__":

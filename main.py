@@ -42,7 +42,7 @@ def main():
                 func.trim(gp.country) != "",
             )
         )
-        .limit(1)
+        .limit(5)
     )
     try:
         with get_session(engine) as session:
@@ -72,7 +72,7 @@ def process_gp(giving_partner, session):
             address=gp_address,
             latitude=giving_partner.latitude,
             longitude=giving_partner.longitude,
-            api_id=autocomplete_result[1],
+            api_id=autocomplete_result,
             source="Google",
         )
         try:
@@ -90,7 +90,6 @@ def process_gp(giving_partner, session):
     except RuntimeError as e:
         print(f"{e}")  # error log this
         raise
-
     if len(text_search_results) > 0:
         # get the topmost result from the text search assuming it is the right GP
         top_result = text_search_results[0]
@@ -100,7 +99,7 @@ def process_gp(giving_partner, session):
             )
             return
         try:
-            gp_info = gpl(
+            gp_info2 = gpl(
                 giving_partner_id=giving_partner.id,
                 address=top_result["formattedAddress"],
                 latitude=top_result["location"]["latitude"],
@@ -108,7 +107,7 @@ def process_gp(giving_partner, session):
                 api_id=top_result["id"],
                 source="Google",
             )
-            session.add(gp_info)
+            session.add(gp_info2)
             session.commit()
             print(
                 f"succesfully processed {giving_partner.name}"

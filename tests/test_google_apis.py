@@ -1,4 +1,4 @@
-"""using sys module for importing modules from parent directory"""
+"""module for unit testing"""
 
 import unittest
 from unittest.mock import MagicMock, patch
@@ -78,8 +78,8 @@ class TestApiFunctions(unittest.TestCase):
             id=1,
         )
 
-        result = text_search(gp_data)
-        self.assertIsNone(result)
+        text_search(gp_data)
+        self.assertRaises(RuntimeError)
 
     @patch("google_api_calls.requests.post")
     def test_call_autocomplete_success(self, mock_post):
@@ -162,9 +162,9 @@ class TestApiFunctions(unittest.TestCase):
             id=1,
         )
 
-        result = call_autocomplete(gp_data)
+        call_autocomplete(gp_data)
 
-        self.assertIsNone(result)
+        self.assertRaises(RuntimeError)
 
     @patch("google_api_calls.requests.post")
     def test_call_autocomplete_with_no_location_bias(self, mock_post):

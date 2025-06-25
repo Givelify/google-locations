@@ -62,7 +62,7 @@ def call_autocomplete(gp):
 
     try:
         response = requests.post(
-            base_url, headers=params, data=json.dumps(body), timeout=10
+            base_url, headers=params, data=json.dumps(body), timeout=30
         )
         response.raise_for_status()
         data = response.json()

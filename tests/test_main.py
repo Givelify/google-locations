@@ -1,19 +1,18 @@
-"""sys module for accessing modules in parent directory"""
+"""unitest module for testing"""
 
 import unittest
 from unittest.mock import MagicMock, patch
 
 import main
-from models import GivingPartnerLocations, GivingPartners
+from models import GivingPartners
 
 
 class TestGPProcessor(unittest.TestCase):
     """testing class for main.py"""
 
-    @patch("main.process_gp")
-    @patch("main.get_session")
     @patch("main.get_engine")
-    def test_main(self, mock_process_gp, mock_get_session, mock_get_engine):
+    @patch("main.get_session")
+    def test_main(self, mock_get_session, mock_get_engine):
         """unit test to check whether the select query works or not"""
         mock_engine = MagicMock()
         mock_get_engine.return_value = mock_engine
@@ -26,8 +25,8 @@ class TestGPProcessor(unittest.TestCase):
         mock_result.all.return_value = [mock_row]
         mock_session.scalars.return_value = mock_result
 
-    @patch("main.autocomplete_check")
     @patch("main.get_session")
+    @patch("main.autocomplete_check")
     def test_process_gp_autocomplete_success(self, mock_autocomplete, mock_get_session):
         """testing funciton for cases with a passing autocomplete check"""
         mock_gp = GivingPartners(
@@ -46,22 +45,21 @@ class TestGPProcessor(unittest.TestCase):
         )
 
         # Mock a successful autocomplete check
-        mock_autocomplete.return_value = (True, "place_id_123")
         mock_session = MagicMock()
         mock_get_session.return_value = mock_session
+        mock_autocomplete.return_value = "place_id_123"
 
-        result = main.process_gp(mock_gp, mock_session, GivingPartnerLocations)
-
-        self.assertTrue(result)
+        main.process_gp(mock_gp, mock_session)
+        print(mock_session.add.call_args[0][0].api_id)
         self.assertEqual(
             mock_session.add.call_args[0][0].address,
             f"{mock_gp.address}, {mock_gp.city}, {mock_gp.state}, {mock_gp.country}",
         )
         mock_session.commit.assert_called_once()
 
+    @patch("main.get_session")
     @patch("main.autocomplete_check")
     @patch("main.text_search")
-    @patch("main.get_session")
     def test_process_gp_text_search_success(
         self, mock_text_search, mock_autocomplete, mock_get_session
     ):
@@ -81,29 +79,28 @@ class TestGPProcessor(unittest.TestCase):
             id=2,
         )
 
-        mock_autocomplete.return_value = (False, None)
+        mock_autocomplete.return_value = None
         mock_top_result = {
             "displayName": {"text": "Faith Center"},
             "formattedAddress": "123 test Rd, Hope City, HC, USA",
-            "location": {"latitude": 34.56, "longitude": 78.90},
+            "location": {"latitude": 55.66, "longitude": 33.45},
             "id": "api_id_456",
         }
         mock_text_search.return_value = [mock_top_result]
 
         mock_session = MagicMock()
         mock_get_session.return_value = mock_session
-        result = main.process_gp(mock_gp, mock_session, GivingPartnerLocations)
-
-        self.assertTrue(result)
+        main.process_gp(mock_gp, mock_session)
+        print(mock_session.add.call_args[0][0].address)
         self.assertEqual(
             mock_session.add.call_args[0][0].address,
             mock_top_result["formattedAddress"],
         )
         mock_session.commit.assert_called_once()
 
+    @patch("main.get_session")
     @patch("main.autocomplete_check")
     @patch("main.text_search")
-    @patch("main.get_session")
     def test_process_gp_no_hits(
         self, mock_text_search, mock_autocomplete, mock_get_session
     ):
@@ -123,19 +120,17 @@ class TestGPProcessor(unittest.TestCase):
             id=3,
         )
 
-        mock_autocomplete.return_value = (False, None)
+        mock_autocomplete.return_value = None
         mock_text_search.return_value = []
         mock_session = MagicMock()
         mock_get_session.return_value = mock_session
 
-        result = main.process_gp(mock_gp, mock_session, GivingPartnerLocations)
-
-        self.assertFalse(result)
+        main.process_gp(mock_gp, mock_session)
         mock_session.add.assert_not_called()
 
+    @patch("main.get_session")
     @patch("main.autocomplete_check")
     @patch("main.text_search")
-    @patch("main.get_session")
     def test_process_gp_failure_on_hit(
         self, mock_text_search, mock_autocomplete, mock_get_session
     ):
@@ -155,7 +150,7 @@ class TestGPProcessor(unittest.TestCase):
             id=3,
         )
 
-        mock_autocomplete.return_value = (False, None)
+        mock_autocomplete.return_value = None
         mock_top_result = {
             "displayName": {"text": "Grace banquet center"},
             "formattedAddress": "123 test Rd, test City, TS, USA",
@@ -166,9 +161,8 @@ class TestGPProcessor(unittest.TestCase):
         mock_session = MagicMock()
         mock_get_session.return_value = mock_session
 
-        result = main.process_gp(mock_gp, mock_session, GivingPartnerLocations)
+        main.process_gp(mock_gp, mock_session)
 
-        self.assertFalse(result)
         mock_session.add.assert_not_called()
 
 
