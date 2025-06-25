@@ -1,3 +1,4 @@
+# pylint: disable=too-few-public-methods
 """os module for getting env variables"""
 
 import os

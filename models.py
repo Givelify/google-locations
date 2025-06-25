@@ -1,3 +1,4 @@
+# pylint: disable=too-few-public-methods
 """datetime object for defining created_at, updated_at columns"""
 
 from datetime import datetime

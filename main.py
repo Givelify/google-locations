@@ -66,7 +66,7 @@ def process_gp(giving_partner, session):
     """Module that processes each GP"""
     autocomplete_result = autocomplete_check(giving_partner)
     if autocomplete_result:
-        gp_address = f"{giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"
+        gp_address = f"{giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
         gp_info = gpl(
             giving_partner_id=giving_partner.id,
             address=gp_address,
