@@ -96,15 +96,34 @@ class TestChecks(unittest.TestCase):
         with self.assertRaises(Exception):
             normalize_address("630 W 28th St, IN, America")
 
-    def test_fuzzy_address_check(self):
+    @patch("checks.normalize_address")
+    @patch("rapidfuzz.fuzz.ratio")
+    def test_fuzzy_address_check(self, mock_fuzz_ratio, mock_normalize_address):
         """Test the fuzzy_address_check function"""
-        api_address1 = "123 Main St, Springfield, USA"
+        mock_normalize_address.side_effect = [
+            Exception,
+            {
+                "street": "123 M St",
+                "country": "USA",
+                "state": "Illinois",
+                "city": "Springfield",
+            },
+            {
+                "street": "123 Main Street",
+                "country": "USA",
+                "state": "Illinois",
+                "city": "Springfield",
+            },
+        ]
+        mock_fuzz_ratio.side_effect = [90, 100, 100, 100]
+        api_address1 = "123 M St, Springfield, USA"
         gp_address1 = "123 Main Street, Springfield, Illinois, USA"
         with self.assertRaises(Exception):
             fuzzy_address_check(api_address1, gp_address1)
         api_address2 = "123 Main St, Springfield, Illinois, USA"
-        self.assertTrue(fuzzy_address_check(api_address2, gp_address1))
+        self.assertEqual(fuzzy_address_check(api_address2, gp_address1), 95)
 
+    @patch("checks.fuzzy_address_check")
     @patch(
         "checks.call_autocomplete",
         return_value={
@@ -137,9 +156,9 @@ class TestChecks(unittest.TestCase):
         },
     )
     def test_autocomplete_check_success(
-        self, mock_call_autocomplete
+        self, mock_call_autocomplete, mock_fuzzy_address_check
     ):  # pylint: disable=unused-argument
-        """Test the autocomplete_check function"""
+        """Test the autocomplete_check function success"""
         donee_info_gp = GivingPartners(
             name="Test GP",
             city="Glenwood",
@@ -154,6 +173,7 @@ class TestChecks(unittest.TestCase):
             unregistered=0,
             id=3,
         )
+        mock_fuzzy_address_check.side_effect = [82, 60, 60]
         result = autocomplete_check(donee_info_gp)
         self.assertEqual(result, "place1_id")
 

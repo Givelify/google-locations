@@ -12,7 +12,8 @@ class TestGPProcessor(unittest.TestCase):
 
     @patch("main.get_engine")
     @patch("main.get_session")
-    def test_main(self, mock_get_session, mock_get_engine):
+    @patch("main.process_gp")
+    def test_main(self, mock_process_gp, mock_get_session, mock_get_engine):
         """unit test to check whether the select query works or not"""
         mock_engine = MagicMock()
         mock_get_engine.return_value = mock_engine
@@ -24,6 +25,8 @@ class TestGPProcessor(unittest.TestCase):
         mock_row.id = "1"
         mock_result.all.return_value = [mock_row]
         mock_session.scalars.return_value = mock_result
+        for result in mock_result:
+            mock_process_gp.assert_called_with(result, mock_session)
 
     @patch("main.get_session")
     @patch("main.autocomplete_check")
@@ -50,7 +53,6 @@ class TestGPProcessor(unittest.TestCase):
         mock_autocomplete.return_value = "place_id_123"
 
         main.process_gp(mock_gp, mock_session)
-        print(mock_session.add.call_args[0][0].api_id)
         self.assertEqual(
             mock_session.add.call_args[0][0].address,
             f"{mock_gp.address}, {mock_gp.city}, {mock_gp.state}, {mock_gp.country}",
@@ -60,8 +62,9 @@ class TestGPProcessor(unittest.TestCase):
     @patch("main.get_session")
     @patch("main.autocomplete_check")
     @patch("main.text_search")
+    @patch("checks.check_topmost")
     def test_process_gp_text_search_success(
-        self, mock_text_search, mock_autocomplete, mock_get_session
+        self, mock_check_topmost, mock_text_search, mock_autocomplete, mock_get_session
     ):
         """testing function for cases with failure of autocomplete check and text search api success"""  # pylint: disable=line-too-long
         mock_gp = GivingPartners(
@@ -88,10 +91,12 @@ class TestGPProcessor(unittest.TestCase):
         }
         mock_text_search.return_value = [mock_top_result]
 
+        mock_check_topmost.return_value = True
+
         mock_session = MagicMock()
         mock_get_session.return_value = mock_session
         main.process_gp(mock_gp, mock_session)
-        print(mock_session.add.call_args[0][0].address)
+        mock_text_search.assert_called_with(mock_gp)
         self.assertEqual(
             mock_session.add.call_args[0][0].address,
             mock_top_result["formattedAddress"],
@@ -126,13 +131,15 @@ class TestGPProcessor(unittest.TestCase):
         mock_get_session.return_value = mock_session
 
         main.process_gp(mock_gp, mock_session)
+        mock_text_search.assert_called_with(mock_gp)
         mock_session.add.assert_not_called()
 
     @patch("main.get_session")
     @patch("main.autocomplete_check")
     @patch("main.text_search")
+    @patch("checks.check_topmost")
     def test_process_gp_failure_on_hit(
-        self, mock_text_search, mock_autocomplete, mock_get_session
+        self, mock_check_topmost, mock_text_search, mock_autocomplete, mock_get_session
     ):
         """testing function for cases of autocomplete check fail, and the topmost hit of text search api not matching gp from donee_info table"""  # pylint: disable=line-too-long
         mock_gp = GivingPartners(
@@ -159,10 +166,11 @@ class TestGPProcessor(unittest.TestCase):
         }
         mock_text_search.return_value = [mock_top_result]
         mock_session = MagicMock()
+        mock_check_topmost.return_value = False
         mock_get_session.return_value = mock_session
 
         main.process_gp(mock_gp, mock_session)
-
+        mock_text_search.assert_called_with(mock_gp)
         mock_session.add.assert_not_called()
 
 
