@@ -52,7 +52,7 @@ def call_autocomplete(gp):
         "input": gp_name,
     }
 
-    if (gp.latitude and gp.latitude != 0) and (gp.longitude and gp.longitude != 0):
+    if gp.latitude and gp.longitude:
         body["locationBias"] = {
             "circle": {
                 "center": {"latitude": gp.latitude, "longitude": gp.longitude},
