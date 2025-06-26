@@ -1,5 +1,7 @@
 """Module that connects to mysql server and performs database operations"""
 
+import argparse
+
 from sqlalchemy import and_, func, select
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -13,6 +15,16 @@ from models import get_engine, get_session
 
 def main():
     """Main module"""
+
+    parser = argparse.ArgumentParser(description="optional giving partner id")
+    parser.add_argument("--id", type=int)
+    try:
+        args = parser.parse_args()
+    except SystemExit:
+        print(
+            "parsing --id argument failed: please make sure it is an integer"
+        )  # error log this
+        raise
 
     try:
         engine = get_engine(
@@ -30,30 +42,54 @@ def main():
     active = 1
     unregistered = 0
 
-    query = (
-        select(gp)
-        .join(gpl, gp.id == gpl.giving_partner_id, isouter=True)
-        .where(
+    if args.id is None:
+        query = (
+            select(gp)
+            .join(gpl, gp.id == gpl.giving_partner_id, isouter=True)
+            .where(
+                and_(
+                    gpl.giving_partner_id.is_(None),
+                    gp.active == active,
+                    gp.unregistered == unregistered,
+                    gp.country.isnot(None),
+                    func.trim(gp.country) != "",
+                )
+            )
+            .limit(1)
+        )
+    else:
+        # for now, just run the GP id regardless of whether it already exists in the GPL table
+        # so have a query to retrieve the GP object from gp table using the gp_id
+        # if it returns 0 results, throw an error stating gp_id provided doesnt exist in the table
+        query = select(gp).where(
             and_(
-                gpl.giving_partner_id.is_(None),
+                gp.id == args.id,
                 gp.active == active,
                 gp.unregistered == unregistered,
                 gp.country.isnot(None),
                 func.trim(gp.country) != "",
             )
         )
-        .limit(5)
-    )
+
     try:
         with get_session(engine) as session:
             # log the success of creating the session
             result = session.scalars(query).all()
+            if len(result) == 0:
+                if args.id is None:
+                    print("No Giving partners left to process")  # log this
+                    return
+                print(
+                    f"No row exists with provided id: {args.id} in the donee_info / giving patners table"  # log this # pylint: disable=line-too-long
+                )
+                return
             for giving_partner in result:
                 print(
                     f"Processing donee_id: {giving_partner.id}, name: {giving_partner.name}, address: {giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
                 )  # log this
                 try:
-                    process_gp(giving_partner, session)
+                    # process_gp(giving_partner, session)
+                    print("x")
                 except (KeyError, TypeError) as e:
                     print(f"Error in process_gp(): {e}")  # error log this
     except SQLAlchemyError as e:
