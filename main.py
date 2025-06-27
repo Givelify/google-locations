@@ -42,8 +42,20 @@ def main():
 
     try:
         args = parse_args()
+
+        engine = get_engine(
+            db_host=Config.DB_HOST,
+            db_port=Config.DB_PORT,
+            db_user=Config.DB_USER,
+            db_password=Config.DB_PASSWORD,
+            db_name=Config.DB_NAME,
+        )
+        # log success
     except SystemExit:
         print("parsing args failed")
+        raise
+    except SQLAlchemyError as e:
+        print(f"Failed to initialize database engine: {e}")  # error log this
         raise
 
     try:
