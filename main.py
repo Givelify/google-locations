@@ -13,6 +13,16 @@ from models import GivingPartners as gp
 from models import get_engine, get_session
 
 
+def base_filter(giving_partner, active, unregistered):
+    "base filter to reuse in SELECT queries to retrieve GPs from donee_info DB"
+    return [
+        giving_partner.active == active,
+        giving_partner.unregistered == unregistered,
+        giving_partner.country.isnot(None),
+        func.trim(giving_partner.country) != "",
+    ]
+
+
 def main():
     """Main module"""
 
@@ -49,10 +59,7 @@ def main():
             .where(
                 and_(
                     gpl.giving_partner_id.is_(None),
-                    gp.active == active,
-                    gp.unregistered == unregistered,
-                    gp.country.isnot(None),
-                    func.trim(gp.country) != "",
+                    *base_filter(gp, active, unregistered),
                 )
             )
             .limit(1)
@@ -64,10 +71,7 @@ def main():
         query = select(gp).where(
             and_(
                 gp.id == args.id,
-                gp.active == active,
-                gp.unregistered == unregistered,
-                gp.country.isnot(None),
-                func.trim(gp.country) != "",
+                *base_filter(gp, active, unregistered),
             )
         )
 
@@ -88,8 +92,7 @@ def main():
                     f"Processing donee_id: {giving_partner.id}, name: {giving_partner.name}, address: {giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
                 )  # log this
                 try:
-                    # process_gp(giving_partner, session)
-                    print("x")
+                    process_gp(giving_partner, session)
                 except (KeyError, TypeError) as e:
                     print(f"Error in process_gp(): {e}")  # error log this
     except SQLAlchemyError as e:
