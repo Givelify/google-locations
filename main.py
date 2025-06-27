@@ -23,9 +23,8 @@ def base_filter(giving_partner, active, unregistered):
     ]
 
 
-def main():
-    """Main module"""
-
+def parse_args():
+    """function to parse optional giving partner id command line argument"""
     parser = argparse.ArgumentParser(description="optional giving partner id")
     parser.add_argument("--id", type=int)
     try:
@@ -34,6 +33,17 @@ def main():
         print(
             "parsing --id argument failed: please make sure it is an integer"
         )  # error log this
+        raise
+    return args
+
+
+def main():
+    """Main module"""
+
+    try:
+        args = parse_args()
+    except SystemExit:
+        print("parsing args failed")
         raise
 
     try:

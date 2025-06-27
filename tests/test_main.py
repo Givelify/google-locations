@@ -10,6 +10,24 @@ from models import GivingPartners
 class TestGPProcessor(unittest.TestCase):
     """testing class for main.py"""
 
+    def test_parse_args(self):
+        """tests for parsing command line arguments"""
+        with patch("sys.argv", ["main.py", "--id", "479"]):
+            args = main.parse_args()
+            self.assertEqual(args.id, 479)
+        with patch("sys.argv", ["main.py", "--id", "string"]):
+            with self.assertRaises(SystemExit):
+                args = main.parse_args()
+        with patch("sys.argv", ["main.py", "--id", "string1", "string2"]):
+            with self.assertRaises(SystemExit):
+                args = main.parse_args()
+        with patch("sys.argv", ["main.py", "--id", "500", "string2"]):
+            with self.assertRaises(SystemExit):
+                args = main.parse_args()
+        with patch("sys.argv", ["main.py", "xyz"]):
+            with self.assertRaises(SystemExit):
+                args = main.parse_args()
+
     @patch("main.get_engine")
     @patch("main.get_session")
     @patch("main.process_gp")
