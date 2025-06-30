@@ -87,8 +87,8 @@ def process_gp(giving_partner, session):
         return
     try:
         text_search_results = text_search(giving_partner)
-    except RuntimeError as e:
-        print(f"{e}")  # error log this
+    except Exception as e:
+        print(f"Error calling google text search API: {e}")  # error log this
         raise
     if len(text_search_results) > 0:
         # get the topmost result from the text search assuming it is the right GP
