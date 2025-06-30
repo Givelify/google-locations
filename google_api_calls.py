@@ -15,7 +15,7 @@ from config import Config
 
 
 def is_retryable(exception):
-    """funciton that returns whether the google api call error is a 429 error
+    """function that returns whether the google api call error is a 429 error
     so that the call could be retried"""
     return (
         isinstance(exception, requests.HTTPError)
