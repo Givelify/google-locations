@@ -2,7 +2,6 @@
 """os module for getting env variables"""
 
 import os
-import sys
 
 from dotenv import load_dotenv
 from givelifylogging import StructuredLogger as slogger
