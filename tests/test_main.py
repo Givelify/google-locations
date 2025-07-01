@@ -1,6 +1,7 @@
 """unitest module for testing"""
 
 import unittest
+from argparse import Namespace
 from unittest.mock import MagicMock, patch
 
 import main
@@ -12,39 +13,57 @@ class TestGPProcessor(unittest.TestCase):
 
     def test_parse_args(self):
         """tests for parsing command line arguments"""
-        with patch("sys.argv", ["main.py", "--id", "479"]):
+        with patch("sys.argv", ["main.py", "--enable_autocomplete"]):
             args = main.parse_args()
-            self.assertEqual(args.id, 479)
+            self.assertTrue(args.enable_autocomplete)
+            self.assertIsNone(args.id)
+
+        with patch("sys.argv", ["main.py", "--id", "123", "--enable_autocomplete"]):
+            args = main.parse_args()
+            self.assertEqual(args.id, 123)
+            self.assertTrue(args.enable_autocomplete)
+
+        with patch("sys.argv", ["main.py"]):
+            args = main.parse_args()
+            self.assertFalse(args.enable_autocomplete)
+
         with patch("sys.argv", ["main.py", "--id", "string"]):
             with self.assertRaises(SystemExit):
-                args = main.parse_args()
+                main.parse_args()
         with patch("sys.argv", ["main.py", "--id", "string1", "string2"]):
             with self.assertRaises(SystemExit):
-                args = main.parse_args()
+                main.parse_args()
         with patch("sys.argv", ["main.py", "--id", "500", "string2"]):
             with self.assertRaises(SystemExit):
-                args = main.parse_args()
+                main.parse_args()
         with patch("sys.argv", ["main.py", "xyz"]):
             with self.assertRaises(SystemExit):
-                args = main.parse_args()
+                main.parse_args()
 
     @patch("main.get_engine")
     @patch("main.get_session")
     @patch("main.process_gp")
-    def test_main(self, mock_process_gp, mock_get_session, mock_get_engine):
+    @patch("main.parse_args")
+    def test_main(
+        self, mock_parse_args, mock_process_gp, mock_get_session, mock_get_engine
+    ):
         """unit test to check whether the select query works or not"""
         mock_engine = MagicMock()
         mock_get_engine.return_value = mock_engine
         mock_session = MagicMock()
         mock_get_session.return_value = mock_session
         mock_result = MagicMock()
+        mock_args = Namespace(enable_autocomplete=True)
+        mock_parse_args.return_value = mock_args
 
         mock_row = MagicMock()
         mock_row.id = "1"
         mock_result.all.return_value = [mock_row]
         mock_session.scalars.return_value = mock_result
         for result in mock_result:
-            mock_process_gp.assert_called_with(result, mock_session)
+            mock_process_gp.assert_called_with(
+                result, mock_session, mock_args.enable_autocomplete
+            )
 
     @patch("main.get_session")
     @patch("main.autocomplete_check")
@@ -70,7 +89,7 @@ class TestGPProcessor(unittest.TestCase):
         mock_get_session.return_value = mock_session
         mock_autocomplete.return_value = "place_id_123"
 
-        main.process_gp(mock_gp, mock_session)
+        main.process_gp(mock_gp, mock_session, autocomplete_toggle=True)
         self.assertEqual(
             mock_session.add.call_args[0][0].address,
             f"{mock_gp.address}, {mock_gp.city}, {mock_gp.state}, {mock_gp.country}",
