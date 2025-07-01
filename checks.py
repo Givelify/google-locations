@@ -13,18 +13,20 @@ def check_topmost(topmost, donee_info_gp):
     """Function to compare the topmost text search API response against
     the gp information in our database to verify it is the correct gp"""  # pylint: disable=line-too-long
     topmost_name = topmost["displayName"]["text"].lower()
-    print(f"Checking topmost result {topmost_name} for: {donee_info_gp.name}")
+    Config.logger.info(
+        f"Checking topmost result {topmost_name} for: {donee_info_gp.name}"
+    )
     gp_name = donee_info_gp.name.lower()
     similarity_score = fuzz.ratio(gp_name, topmost_name)
     # for now just go with the assumption that the topmost one is good
     # if the simlarity score between its name and the giving partner name
     # in our database is more than 90
     if similarity_score < Config.TOPMOST_NAME_MATCHING_THRESHOLD:
-        print(
+        Config.logger.info(
             f"Topmost name {topmost_name} does not match GP name {gp_name} as similarity score is {similarity_score}, skipping."
         )
         return False
-    print(
+    Config.logger.info(
         f"topmost result {topmost["displayName"]["text"]} with address {topmost["formattedAddress"]} matched giving partner name {donee_info_gp.name} with similarity score of {similarity_score}"
     )
     return True
@@ -51,7 +53,7 @@ def normalize_address(address):
         parsed_address["state"] = address_parts[-2]
         parsed_address["city"] = address_parts[-3]
     else:
-        print(f"{address} not complete error")
+        Config.logger.error(f"{address} not complete error")
         raise ValueError(f"address {address} not complete error")
     return parsed_address
 
@@ -111,13 +113,13 @@ def autocomplete_check(donee_info_gp):
             ],
         )
     )
-    print(
+    Config.logger.info(
         f"Autocomplete check for: {donee_info_gp.name}, address: {gp_address}"
-    )  # log this message
+    )
     try:
         autocomplete_results = call_autocomplete(donee_info_gp)
     except Exception as e:  # pylint: disable=broad-exception-caught
-        print(f"Error calling autocomplete API: {e}")  # error log this
+        Config.logger.error(f"Error calling autocomplete API: {e}")  # error log this
         return None
     if len(autocomplete_results) > 0:
         for suggestion in autocomplete_results.get("suggestions", []):
@@ -133,11 +135,16 @@ def autocomplete_check(donee_info_gp):
                         autocomplete_address, gp_address
                     )
                 except ValueError as e:  # pylint: disable=unused-variable
-                    # Error log this, say skipping autocomplete check because of e
+                    Config.logger.error(
+                        f"skipping autocomplete check because of error: {e}"
+                    )
                     continue
-                print(
+                Config.logger.info(
                     f"auto address: {autocomplete_address}, donee_info address: {gp_address}, sim_score: {similarity_score}"  # pylint: disable=line-too-long
                 )
                 if similarity_score > Config.AUTOCOMPLETE_ADDRESS_MATCHING_THRESHOLD:
                     return suggestion.get("placePrediction", {}).get("placeId", None)
+    Config.logger.info(
+        f"Autocomplete check FAILED for: {donee_info_gp.name}, address: {gp_address}"
+    )
     return None  # log this stating autocomplete check failed for gp

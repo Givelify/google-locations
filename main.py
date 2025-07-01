@@ -13,7 +13,7 @@ from models import get_engine, get_session
 
 def main():
     """Main module"""
-
+    print(Config.log_dir)
     try:
         engine = get_engine(
             db_host=Config.DB_HOST,
@@ -22,9 +22,9 @@ def main():
             db_password=Config.DB_PASSWORD,
             db_name=Config.DB_NAME,
         )
-        # log the success
+        Config.logger.info("MySQL engine succesfully initialized")
     except SQLAlchemyError as e:
-        print(f"Failed to initialize database engine: {e}")  # error log this
+        Config.logger.error(f"Failed to initialize database engine: {e}")
         raise
 
     active = 1
@@ -42,22 +42,22 @@ def main():
                 func.trim(gp.country) != "",
             )
         )
-        .limit(5)
+        .limit(1)
     )
     try:
         with get_session(engine) as session:
             # log the success of creating the session
             result = session.scalars(query).all()
             for giving_partner in result:
-                print(
+                Config.logger.info(
                     f"Processing donee_id: {giving_partner.id}, name: {giving_partner.name}, address: {giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
-                )  # log this
+                )
                 try:
                     process_gp(giving_partner, session)
                 except (KeyError, TypeError) as e:
-                    print(f"Error in process_gp(): {e}")  # error log this
+                    Config.logger.error(f"Error in process_gp(): {e}")
     except SQLAlchemyError as e:
-        print(f"failed to create session: {e}")  # error log this
+        Config.logger.error(f"failed to create session: {e}")
     finally:
         engine.dispose()
 
@@ -78,23 +78,21 @@ def process_gp(giving_partner, session):
         try:
             session.add(gp_info)
             session.commit()
-            print(
-                f"succesfully processed {giving_partner.name}"
-            )  # log this sucessfull processing
+            Config.logger.info(f"succesfully processed {giving_partner.name}")
         except SQLAlchemyError as e:
-            print(f"sqlalchemy insertion error: {e}")  # error log this
+            Config.logger.error(f"sqlalchemy insertion error: {e}")
             raise
         return
     try:
         text_search_results = text_search(giving_partner)
     except Exception as e:
-        print(f"Error calling google text search API: {e}")  # error log this
+        Config.logger.error(f"Error calling google text search API: {e}")
         raise
     if len(text_search_results) > 0:
         # get the topmost result from the text search assuming it is the right GP
         top_result = text_search_results[0]
         if not check_topmost(top_result, giving_partner):
-            print(
+            Config.logger.info(
                 f"not processed as the topmost result from text search {top_result["displayName"]["text"]} does not match gp name {giving_partner.name}"  # pylint: disable=line-too-long
             )
             return
@@ -109,16 +107,14 @@ def process_gp(giving_partner, session):
             )
             session.add(gp_info2)
             session.commit()
-            print(
-                f"succesfully processed {giving_partner.name}"
-            )  # log this sucessful processing
+            Config.logger.info(f"succesfully processed {giving_partner.name}")
         except (SQLAlchemyError, KeyError, TypeError) as e:
-            print(f"Insertion failed for {giving_partner.name}: {e}")  # log error
+            Config.logger.error(f"Insertion failed for {giving_partner.name}: {e}")
             raise
         return
-    print(
+    Config.logger.info(
         "not processed as neither autocomplete check passed nor the topmost result from text search does not match"  # pylint: disable=line-too-long
-    )  # log the failure to process the GP
+    )
     return
 
 
