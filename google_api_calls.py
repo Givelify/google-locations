@@ -4,10 +4,30 @@ import json
 
 import requests
 from requests.exceptions import RequestException
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
 from config import Config
 
 
+def is_retryable(exception):
+    """function that returns whether the google api call error is a 429 error
+    so that the call could be retried"""
+    return (
+        isinstance(exception, requests.HTTPError)
+        and exception.response.status_code == 429
+    )
+
+
+@retry(
+    wait=wait_exponential(multiplier=1, min=5, max=10),
+    stop=stop_after_attempt(3),
+    retry=retry_if_exception_type(is_retryable),
+)
 def text_search(gp):
     """Function calling text search API"""
     gp_name = gp.name
@@ -27,17 +47,28 @@ def text_search(gp):
     }
     try:
         response = requests.post(
-            base_url, headers=params, data=json.dumps(body), timeout=10
+            base_url, headers=params, data=json.dumps(body), timeout=30
         )
         response.raise_for_status()
         data = response.json()
         return data.get("places", [])
+    except requests.HTTPError as http_error:
+        if http_error.response.status_code == 429:
+            raise http_error
+        raise RuntimeError(
+            f"google places API call HTTP error occured: {http_error}"
+        ) from http_error
     except RequestException as e:
         raise RuntimeError(
             f"google places API call failed: {e}"
         ) from e  # error log this
 
 
+@retry(
+    wait=wait_exponential(multiplier=1, min=5, max=10),
+    stop=stop_after_attempt(3),
+    retry=retry_if_exception_type(is_retryable),
+)
 def call_autocomplete(gp):
     """function calling the Autocomplete API"""
     gp_name = gp.name
@@ -67,6 +98,12 @@ def call_autocomplete(gp):
         response.raise_for_status()
         data = response.json()
         return data
+    except requests.HTTPError as http_error:
+        if http_error.response.status_code == 429:
+            raise http_error
+        raise RuntimeError(
+            f"google places API call HTTP error occured: {http_error}"
+        ) from http_error
     except RequestException as e:
         raise RuntimeError(
             f"google places API call failed: {e}"

@@ -3,6 +3,8 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
+import requests
+
 from google_api_calls import call_autocomplete, text_search
 from models import GivingPartners
 
@@ -59,7 +61,7 @@ class TestApiFunctions(unittest.TestCase):
     def test_text_search_failure(self, mock_post):
         """Mock a failed response for text_search api call (non-200 status code)"""
         mock_response = MagicMock()
-        mock_response.status_code = 500
+        mock_response.status_code.side_effect = [500, 429]
         mock_response.text = "Error: Something went wrong"
         mock_post.return_value = mock_response
 
@@ -80,6 +82,10 @@ class TestApiFunctions(unittest.TestCase):
 
         text_search(gp_data)
         self.assertRaises(RuntimeError)
+        # if a 429 occurs
+        text_search(gp_data)
+        self.assertRaises(requests.HTTPError)
+        self.assertGreaterEqual(mock_post.call_count, 2)
 
     @patch("google_api_calls.requests.post")
     def test_call_autocomplete_success(self, mock_post):
@@ -143,7 +149,7 @@ class TestApiFunctions(unittest.TestCase):
     def test_call_autocomplete_failure(self, mock_post):
         """Mock a failed response for the autocomplete api call (non-200 status code)"""
         mock_response = MagicMock()
-        mock_response.status_code = 500
+        mock_response.status_code.side_effect = [500, 429]
         mock_response.text = "Error: Something went wrong"
         mock_post.return_value = mock_response
 
@@ -163,8 +169,11 @@ class TestApiFunctions(unittest.TestCase):
         )
 
         call_autocomplete(gp_data)
-
         self.assertRaises(RuntimeError)
+        # if a 429 occurs
+        call_autocomplete(gp_data)
+        self.assertRaises(requests.HTTPError)
+        self.assertGreaterEqual(mock_post.call_count, 2)
 
     @patch("google_api_calls.requests.post")
     def test_call_autocomplete_with_no_location_bias(self, mock_post):
