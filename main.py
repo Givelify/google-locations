@@ -30,9 +30,9 @@ def parse_args():
     try:
         args = parser.parse_args()
     except SystemExit:
-        print(
+        Config.logger.error(
             "parsing --id argument failed: please make sure it is an integer"
-        )  # error log this
+        )
         raise
     return args
 
@@ -51,10 +51,12 @@ def main():
         )
         # log success
     except SystemExit:
-        print("parsing args failed")
+        Config.logger.error("parsing args failed")
         raise
     except SQLAlchemyError as e:
-        print(f"Failed to initialize database engine: {e}")  # error log this
+        Config.logger.error(
+            f"Failed to initialize database engine: {e}"
+        )  # error log this
         raise
 
     try:
@@ -86,9 +88,6 @@ def main():
             .limit(1)
         )
     else:
-        # for now, just run the GP id regardless of whether it already exists in the GPL table
-        # so have a query to retrieve the GP object from gp table using the gp_id
-        # if it returns 0 results, throw an error stating gp_id provided doesnt exist in the table
         query = select(gp).where(
             and_(
                 gp.id == args.id,
@@ -101,9 +100,9 @@ def main():
             result = session.scalars(query).all()
             if len(result) == 0:
                 if args.id is None:
-                    print("No Giving partners left to process")  # log this
+                    Config.logger.info("No Giving partners left to process")
                     return
-                print(
+                Config.logger.info(
                     f"No row exists with provided id: {args.id} in the donee_info / giving patners table"  # log this # pylint: disable=line-too-long
                 )
                 return
