@@ -13,7 +13,6 @@ from models import get_engine, get_session
 
 def main():
     """Main module"""
-    print(Config.log_dir)
     try:
         engine = get_engine(
             db_host=Config.DB_HOST,
