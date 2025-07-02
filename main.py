@@ -1,5 +1,7 @@
 """Module that connects to mysql server and performs database operations"""
 
+import argparse
+
 from sqlalchemy import and_, func, select
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -11,8 +13,50 @@ from models import GivingPartners as gp
 from models import get_engine, get_session
 
 
+def base_filter(giving_partner, active, unregistered):
+    "base filter to reuse in SELECT queries to retrieve GPs from donee_info DB"
+    return [
+        giving_partner.active == active,
+        giving_partner.unregistered == unregistered,
+        giving_partner.country.isnot(None),
+        func.trim(giving_partner.country) != "",
+    ]
+
+
+def parse_args():
+    """function to parse optional giving partner id command line argument"""
+    parser = argparse.ArgumentParser(description="optional giving partner id")
+    parser.add_argument("--id", type=int)
+    try:
+        args = parser.parse_args()
+    except SystemExit:
+        print(
+            "parsing --id argument failed: please make sure it is an integer"
+        )  # error log this
+        raise
+    return args
+
+
 def main():
     """Main module"""
+    try:
+        args = parse_args()
+
+        engine = get_engine(
+            db_host=Config.DB_HOST,
+            db_port=Config.DB_PORT,
+            db_user=Config.DB_USER,
+            db_password=Config.DB_PASSWORD,
+            db_name=Config.DB_NAME,
+        )
+        # log success
+    except SystemExit:
+        print("parsing args failed")
+        raise
+    except SQLAlchemyError as e:
+        print(f"Failed to initialize database engine: {e}")  # error log this
+        raise
+
     try:
         engine = get_engine(
             db_host=Config.DB_HOST,
@@ -29,24 +73,40 @@ def main():
     active = 1
     unregistered = 0
 
-    query = (
-        select(gp)
-        .join(gpl, gp.id == gpl.giving_partner_id, isouter=True)
-        .where(
+    if args.id is None:
+        query = (
+            select(gp)
+            .join(gpl, gp.id == gpl.giving_partner_id, isouter=True)
+            .where(
+                and_(
+                    gpl.giving_partner_id.is_(None),
+                    *base_filter(gp, active, unregistered),
+                )
+            )
+            .limit(1)
+        )
+    else:
+        # for now, just run the GP id regardless of whether it already exists in the GPL table
+        # so have a query to retrieve the GP object from gp table using the gp_id
+        # if it returns 0 results, throw an error stating gp_id provided doesnt exist in the table
+        query = select(gp).where(
             and_(
-                gpl.giving_partner_id.is_(None),
-                gp.active == active,
-                gp.unregistered == unregistered,
-                gp.country.isnot(None),
-                func.trim(gp.country) != "",
+                gp.id == args.id,
+                *base_filter(gp, active, unregistered),
             )
         )
-        .limit(1)
-    )
     try:
         with get_session(engine) as session:
             # log the success of creating the session
             result = session.scalars(query).all()
+            if len(result) == 0:
+                if args.id is None:
+                    print("No Giving partners left to process")  # log this
+                    return
+                print(
+                    f"No row exists with provided id: {args.id} in the donee_info / giving patners table"  # log this # pylint: disable=line-too-long
+                )
+                return
             for giving_partner in result:
                 Config.logger.info(
                     f"Processing donee_id: {giving_partner.id}, name: {giving_partner.name}, address: {giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
