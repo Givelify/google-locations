@@ -25,14 +25,22 @@ def base_filter(giving_partner, active, unregistered):
 
 def parse_args():
     """function to parse optional giving partner id command line argument"""
-    parser = argparse.ArgumentParser(description="optional giving partner id")
+    parser = argparse.ArgumentParser(
+        description="optional giving partner id and enable autocomplete check toggle"
+    )
     parser.add_argument("--id", type=int)
+
+    parser.add_argument(
+        "--enable_autocomplete",
+        action="store_true",
+        help="Enable autocomplete check",
+        default=False,
+    )
     try:
         args = parser.parse_args()
     except SystemExit:
-        print(
-            "parsing --id argument failed: please make sure it is an integer"
-        )  # error log this
+        # error log this
+        print("error parsing args")
         raise
     return args
 
@@ -58,19 +66,6 @@ def main():
         print(f"Failed to initialize database engine: {e}")  # error log this
         raise
 
-    try:
-        engine = get_engine(
-            db_host=Config.DB_HOST,
-            db_port=Config.DB_PORT,
-            db_user=Config.DB_USER,
-            db_password=Config.DB_PASSWORD,
-            db_name=Config.DB_NAME,
-        )
-        # log the success
-    except SQLAlchemyError as e:
-        print(f"Failed to initialize database engine: {e}")  # error log this
-        raise
-
     active = 1
     unregistered = 0
 
@@ -87,9 +82,6 @@ def main():
             .limit(1)
         )
     else:
-        # for now, just run the GP id regardless of whether it already exists in the GPL table
-        # so have a query to retrieve the GP object from gp table using the gp_id
-        # if it returns 0 results, throw an error stating gp_id provided doesnt exist in the table
         query = select(gp).where(
             and_(
                 gp.id == args.id,
@@ -114,7 +106,11 @@ def main():
                     f"Processing donee_id: {giving_partner.id}, name: {giving_partner.name}, address: {giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
                 )  # log this
                 try:
-                    process_gp(giving_partner, session)
+                    process_gp(
+                        giving_partner,
+                        session,
+                        autocomplete_toggle=args.enable_autocomplete,
+                    )
                 except (KeyError, TypeError) as e:
                     print(f"Error in process_gp(): {e}")  # error log this
     except SQLAlchemyError as e:
@@ -123,29 +119,34 @@ def main():
         engine.dispose()
 
 
-def process_gp(giving_partner, session):
+def process_gp(giving_partner, session, autocomplete_toggle=False):
     """Module that processes each GP"""
-    autocomplete_result = autocomplete_check(giving_partner)
-    if autocomplete_result:
-        gp_address = f"{giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
-        gp_info = gpl(
-            giving_partner_id=giving_partner.id,
-            address=gp_address,
-            latitude=giving_partner.latitude,
-            longitude=giving_partner.longitude,
-            api_id=autocomplete_result,
-            source="Google",
-        )
-        try:
-            session.add(gp_info)
-            session.commit()
-            print(
-                f"succesfully processed {giving_partner.name}"
-            )  # log this sucessfull processing
-        except SQLAlchemyError as e:
-            print(f"sqlalchemy insertion error: {e}")  # error log this
-            raise
-        return
+    if autocomplete_toggle:
+        autocomplete_result = autocomplete_check(giving_partner)
+        if autocomplete_result:
+            gp_address = f"{giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
+            gp_info = gpl(
+                giving_partner_id=giving_partner.id,
+                address=gp_address,
+                latitude=giving_partner.latitude,
+                longitude=giving_partner.longitude,
+                api_id=autocomplete_result,
+                source="Google",
+            )
+            try:
+                session.add(gp_info)
+                session.commit()
+                print(
+                    f"succesfully processed {giving_partner.name}"
+                )  # log this sucessfull processing
+            except SQLAlchemyError as e:
+                print(f"sqlalchemy insertion error: {e}")  # error log this
+                raise
+            return
+    else:
+        print(
+            "skipping autocomplete check as autocomplete was not toggled on using 'enable_autocomplete'"  # pylint: disable=line-too-long
+        )  # log this
     try:
         text_search_results = text_search(giving_partner)
     except Exception as e:
