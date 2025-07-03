@@ -27,8 +27,17 @@ def base_filter(giving_partner, active, unregistered):
 
 def parse_args():
     """function to parse optional giving partner id command line argument"""
-    parser = argparse.ArgumentParser(description="optional giving partner id")
+    parser = argparse.ArgumentParser(
+        description="optional giving partner id and enable autocomplete check toggle"
+    )
     parser.add_argument("--id", type=int)
+
+    parser.add_argument(
+        "--enable_autocomplete",
+        action="store_true",
+        help="Enable autocomplete check",
+        default=False,
+    )
     try:
         args = parser.parse_args()
     except SystemExit:
@@ -56,20 +65,6 @@ def main():
     except SQLAlchemyError as e:
         logger.error(f"Failed to initialize database engine: {e}")  # error log this
         raise
-
-    try:
-        engine = get_engine(
-            db_host=Config.DB_HOST,
-            db_port=Config.DB_PORT,
-            db_user=Config.DB_USER,
-            db_password=Config.DB_PASSWORD,
-            db_name=Config.DB_NAME,
-        )
-        logger.debug("MySQL engine succesfully initialized")
-    except SQLAlchemyError as e:
-        logger.error(f"Failed to initialize database engine: {e}")
-        raise
-
     active = 1
     unregistered = 0
 
@@ -109,7 +104,11 @@ def main():
                     f"Processing donee_id: {giving_partner.id}, name: {giving_partner.name}, address: {giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
                 )
                 try:
-                    process_gp(giving_partner, session)
+                    process_gp(
+                        giving_partner,
+                        session,
+                        autocomplete_toggle=args.enable_autocomplete,
+                    )
                 except (KeyError, TypeError) as e:
                     logger.error(f"Error in process_gp(): {e}")
     except SQLAlchemyError as e:
@@ -118,27 +117,32 @@ def main():
         engine.dispose()
 
 
-def process_gp(giving_partner, session):
+def process_gp(giving_partner, session, autocomplete_toggle=False):
     """Module that processes each GP"""
-    autocomplete_result = autocomplete_check(giving_partner)
-    if autocomplete_result:
-        gp_address = f"{giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
-        gp_info = gpl(
-            giving_partner_id=giving_partner.id,
-            address=gp_address,
-            latitude=giving_partner.latitude,
-            longitude=giving_partner.longitude,
-            api_id=autocomplete_result,
-            source="Google",
+    if autocomplete_toggle:
+        autocomplete_result = autocomplete_check(giving_partner)
+        if autocomplete_result:
+            gp_address = f"{giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
+            gp_info = gpl(
+                giving_partner_id=giving_partner.id,
+                address=gp_address,
+                latitude=giving_partner.latitude,
+                longitude=giving_partner.longitude,
+                api_id=autocomplete_result,
+                source="Google",
+            )
+            try:
+                session.add(gp_info)
+                session.commit()
+                logger.info(f"succesfully processed {giving_partner.name}")
+            except SQLAlchemyError as e:
+                logger.error(f"sqlalchemy insertion error: {e}")
+                raise
+            return
+    else:
+        logger.error(
+            "skipping autocomplete check as autocomplete was not toggled on using 'enable_autocomplete'"  # pylint: disable=line-too-long
         )
-        try:
-            session.add(gp_info)
-            session.commit()
-            logger.info(f"succesfully processed {giving_partner.name}")
-        except SQLAlchemyError as e:
-            logger.error(f"sqlalchemy insertion error: {e}")
-            raise
-        return
     try:
         text_search_results = text_search(giving_partner)
     except Exception as e:
