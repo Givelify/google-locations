@@ -12,6 +12,8 @@ from models import GivingPartnerLocations as gpl
 from models import GivingPartners as gp
 from models import get_engine, get_session
 
+logger = Config.logger
+
 
 def base_filter(giving_partner, active, unregistered):
     "base filter to reuse in SELECT queries to retrieve GPs from donee_info DB"
@@ -39,15 +41,13 @@ def parse_args():
     try:
         args = parser.parse_args()
     except SystemExit:
-        # error log this
-        print("error parsing args")
+        logger.error("parsing --id argument failed: please make sure it is an integer")
         raise
     return args
 
 
 def main():
     """Main module"""
-
     try:
         args = parse_args()
 
@@ -60,12 +60,11 @@ def main():
         )
         # log success
     except SystemExit:
-        print("parsing args failed")
+        logger.error("parsing args failed")
         raise
     except SQLAlchemyError as e:
-        print(f"Failed to initialize database engine: {e}")  # error log this
+        logger.error(f"Failed to initialize database engine: {e}")  # error log this
         raise
-
     active = 1
     unregistered = 0
 
@@ -88,23 +87,22 @@ def main():
                 *base_filter(gp, active, unregistered),
             )
         )
-
     try:
         with get_session(engine) as session:
             # log the success of creating the session
             result = session.scalars(query).all()
             if len(result) == 0:
                 if args.id is None:
-                    print("No Giving partners left to process")  # log this
+                    logger.info("No Giving partners left to process")
                     return
-                print(
+                logger.info(
                     f"No row exists with provided id: {args.id} in the donee_info / giving patners table"  # log this # pylint: disable=line-too-long
                 )
                 return
             for giving_partner in result:
-                print(
+                logger.info(
                     f"Processing donee_id: {giving_partner.id}, name: {giving_partner.name}, address: {giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
-                )  # log this
+                )
                 try:
                     process_gp(
                         giving_partner,
@@ -112,9 +110,9 @@ def main():
                         autocomplete_toggle=args.enable_autocomplete,
                     )
                 except (KeyError, TypeError) as e:
-                    print(f"Error in process_gp(): {e}")  # error log this
+                    logger.error(f"Error in process_gp(): {e}")
     except SQLAlchemyError as e:
-        print(f"failed to create session: {e}")  # error log this
+        logger.error(f"failed to create session: {e}")
     finally:
         engine.dispose()
 
@@ -136,27 +134,25 @@ def process_gp(giving_partner, session, autocomplete_toggle=False):
             try:
                 session.add(gp_info)
                 session.commit()
-                print(
-                    f"succesfully processed {giving_partner.name}"
-                )  # log this sucessfull processing
+                logger.info(f"succesfully processed {giving_partner.name}")
             except SQLAlchemyError as e:
-                print(f"sqlalchemy insertion error: {e}")  # error log this
+                logger.error(f"sqlalchemy insertion error: {e}")
                 raise
             return
     else:
-        print(
+        logger.error(
             "skipping autocomplete check as autocomplete was not toggled on using 'enable_autocomplete'"  # pylint: disable=line-too-long
-        )  # log this
+        )
     try:
         text_search_results = text_search(giving_partner)
     except Exception as e:
-        print(f"Error calling google text search API: {e}")  # error log this
+        logger.error(f"Error calling google text search API: {e}")
         raise
     if len(text_search_results) > 0:
         # get the topmost result from the text search assuming it is the right GP
         top_result = text_search_results[0]
         if not check_topmost(top_result, giving_partner):
-            print(
+            logger.info(
                 f"not processed as the topmost result from text search {top_result["displayName"]["text"]} does not match gp name {giving_partner.name}"  # pylint: disable=line-too-long
             )
             return
@@ -171,16 +167,14 @@ def process_gp(giving_partner, session, autocomplete_toggle=False):
             )
             session.add(gp_info2)
             session.commit()
-            print(
-                f"succesfully processed {giving_partner.name}"
-            )  # log this sucessful processing
+            logger.info(f"succesfully processed {giving_partner.name}")
         except (SQLAlchemyError, KeyError, TypeError) as e:
-            print(f"Insertion failed for {giving_partner.name}: {e}")  # log error
+            logger.error(f"Insertion failed for {giving_partner.name}: {e}")
             raise
         return
-    print(
+    logger.info(
         "not processed as neither autocomplete check passed nor the topmost result from text search does not match"  # pylint: disable=line-too-long
-    )  # log the failure to process the GP
+    )
     return
 
 

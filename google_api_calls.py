@@ -13,6 +13,8 @@ from tenacity import (
 
 from config import Config
 
+logger = Config.logger
+
 
 def is_retryable(exception):
     """function that returns whether the google api call error is a 429 error
@@ -54,6 +56,9 @@ def text_search(gp):
         return data.get("places", [])
     except requests.HTTPError as http_error:
         if http_error.response.status_code == 429:
+            logger.error(
+                f"429 Error while calling Google text search API: {http_error}"
+            )
             raise http_error
         raise RuntimeError(
             f"google places API call HTTP error occured: {http_error}"
@@ -100,6 +105,9 @@ def call_autocomplete(gp):
         return data
     except requests.HTTPError as http_error:
         if http_error.response.status_code == 429:
+            logger.error(
+                f"429 Error while calling Google text search API: {http_error}"
+            )
             raise http_error
         raise RuntimeError(
             f"google places API call HTTP error occured: {http_error}"
