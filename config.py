@@ -1,9 +1,12 @@
 # pylint: disable=too-few-public-methods
 """os module for getting env variables"""
 
+import logging
 import os
+import sys
 
 from dotenv import load_dotenv
+from givelifylogging import StructuredLogger as slogger
 
 load_dotenv()
 
@@ -19,3 +22,7 @@ class Config:
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
     TOPMOST_NAME_MATCHING_THRESHOLD = 90
     AUTOCOMPLETE_ADDRESS_MATCHING_THRESHOLD = 80
+    stdout_handler = logging.StreamHandler(sys.stdout)
+    logger = slogger.StructuredLogger.getLogger(
+        "google-locations", "INFO", stdout_handler
+    )
