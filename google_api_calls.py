@@ -116,3 +116,36 @@ def call_autocomplete(gp):
         raise RuntimeError(
             f"google places API call failed: {e}"
         ) from e  # error log this
+
+
+@retry(
+    wait=wait_exponential(multiplier=1, min=5, max=10),
+    stop=stop_after_attempt(3),
+    retry=retry_if_exception_type(is_retryable),
+)
+def geocoding_api(place_id):
+    """Function calling text search API"""
+    base_url = "https://maps.googleapis.com/maps/api/geocode/json"
+
+    params = {
+        "place_id": place_id,
+        "key": Config.GOOGLE_API_KEY,
+        "extra_computations": "BUILDING_AND_ENTRANCES",
+        "entrances": "true",
+    }
+
+    try:
+        response = requests.post(base_url, params=params, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+        return data
+    except requests.HTTPError as http_error:
+        if http_error.response.status_code == 429:
+            raise http_error
+        raise RuntimeError(
+            f"google places API call HTTP error occured: {http_error}"
+        ) from http_error
+    except RequestException as e:
+        raise RuntimeError(
+            f"google places API call failed: {e}"
+        ) from e  # error log this

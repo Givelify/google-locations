@@ -11,6 +11,75 @@ from models import GivingPartners
 class TestGPProcessor(unittest.TestCase):
     """testing class for main.py"""
 
+    def test_preprocess_building_outlines(self):
+        """tests for successfully preprocessing building outlines returned by geocoding API"""
+        building_outlines = [
+            {
+                "type": "Polygon",
+                "coordinates": [
+                    [
+                        [-92.6653733154025, 36.9425329312773],
+                        [-92.6656607099443, 36.9425568255168],
+                        [-92.6656936027867, 36.94230221016],
+                        [-92.6654060564636, 36.9422783192727],
+                        [-92.6653733154025, 36.9425329312773],
+                    ]
+                ],
+            },
+            None,
+            {
+                "type": "MultiPolygon",
+                "coordinates": [
+                    [
+                        [
+                            [-92.6653733154025, 36.9425329312773],
+                            [-92.6656607099443, 36.9425568255168],
+                            [-92.6656936027867, 36.94230221016],
+                            [-92.6654060564636, 36.9422783192727],
+                            [-92.6653733154025, 36.9425329312773],
+                        ]
+                    ],
+                    [
+                        [
+                            [-346534634, 45245245],
+                            [-42524524, 2525223452],
+                            [-25234532523, 2454254254],
+                            [-245234523532, 5235325],
+                            [-235235325, 2352353254],
+                        ]
+                    ],
+                ],
+            },
+            {
+                "type": "MultiPolygon",
+                "coordinates": [
+                    [
+                        [-92.6653733154025, 36.9425329312773],
+                        [-92.6656607099443, 36.9425568255168],
+                        [-92.6656936027867, 36.94230221016],
+                        [-92.6654060564636, 36.9422783192727],
+                        [-92.6653733154025, 36.9425329312773],
+                    ],
+                    [
+                        [-346534634, 45245245],
+                        [-42524524, 2525223452],
+                        [-25234532523, 2454254254],
+                        [-245234523532, 5235325],
+                        [-235235325, 2352353254],
+                    ],
+                ],
+            },
+        ]
+
+        preprocessed_outlines = main.preprocess_building_outlines(building_outlines[0])
+        self.assertEqual(preprocessed_outlines[:7], "POLYGON")
+        preprocessed_outlines = main.preprocess_building_outlines(building_outlines[1])
+        self.assertIsNone(preprocessed_outlines)
+        preprocessed_outlines = main.preprocess_building_outlines(building_outlines[2])
+        self.assertEqual(preprocessed_outlines[:12], "MULTIPOLYGON")
+        with self.assertRaises(Exception):
+            main.preprocess_building_outlines(building_outlines[3])
+
     def test_parse_args(self):
         """tests for parsing command line arguments"""
         with patch("sys.argv", ["main.py", "--enable_autocomplete"]):
@@ -67,7 +136,15 @@ class TestGPProcessor(unittest.TestCase):
 
     @patch("main.get_session")
     @patch("main.autocomplete_check")
-    def test_process_gp_autocomplete_success(self, mock_autocomplete, mock_get_session):
+    @patch("main.geocoding_api")
+    @patch("main.preprocess_building_outlines")
+    def test_process_gp_autocomplete_success(
+        self,
+        mock_preprocess_building_outlines,
+        mock_geocoding_api,
+        mock_autocomplete,
+        mock_get_session,
+    ):
         """testing funciton for cases with a passing autocomplete check"""
         mock_gp = GivingPartners(
             name="Test Church",
@@ -83,6 +160,9 @@ class TestGPProcessor(unittest.TestCase):
             unregistered=0,
             id=1,
         )
+
+        mock_geocoding_api.return_value = MagicMock()
+        mock_preprocess_building_outlines.return_value = MagicMock()
 
         # Mock a successful autocomplete check
         mock_session = MagicMock()
@@ -100,8 +180,16 @@ class TestGPProcessor(unittest.TestCase):
     @patch("main.autocomplete_check")
     @patch("main.text_search")
     @patch("checks.check_topmost")
+    @patch("main.geocoding_api")
+    @patch("main.preprocess_building_outlines")
     def test_process_gp_text_search_success(
-        self, mock_check_topmost, mock_text_search, mock_autocomplete, mock_get_session
+        self,
+        mock_preprocess_building_outlines,
+        mock_geocoding_api,
+        mock_check_topmost,
+        mock_text_search,
+        mock_autocomplete,
+        mock_get_session,
     ):
         """testing function for cases with failure of autocomplete check and text search api success"""  # pylint: disable=line-too-long
         mock_gp = GivingPartners(
@@ -118,6 +206,9 @@ class TestGPProcessor(unittest.TestCase):
             unregistered=0,
             id=2,
         )
+
+        mock_geocoding_api.return_value = MagicMock()
+        mock_preprocess_building_outlines.return_value = MagicMock()
 
         mock_autocomplete.return_value = None
         mock_top_result = {
@@ -175,8 +266,16 @@ class TestGPProcessor(unittest.TestCase):
     @patch("main.autocomplete_check")
     @patch("main.text_search")
     @patch("checks.check_topmost")
+    @patch("main.geocoding_api")
+    @patch("main.preprocess_building_outlines")
     def test_process_gp_failure_on_hit(
-        self, mock_check_topmost, mock_text_search, mock_autocomplete, mock_get_session
+        self,
+        mock_preprocess_building_outlines,
+        mock_geocoding_api,
+        mock_check_topmost,
+        mock_text_search,
+        mock_autocomplete,
+        mock_get_session,
     ):
         """testing function for cases of autocomplete check fail, and the topmost hit of text search api not matching gp from donee_info table"""  # pylint: disable=line-too-long
         mock_gp = GivingPartners(
@@ -195,6 +294,8 @@ class TestGPProcessor(unittest.TestCase):
         )
 
         mock_autocomplete.return_value = None
+        mock_geocoding_api.return_value = MagicMock()
+        mock_preprocess_building_outlines.return_value = MagicMock()
         mock_top_result = {
             "displayName": {"text": "Grace banquet center"},
             "formattedAddress": "123 test Rd, test City, TS, USA",

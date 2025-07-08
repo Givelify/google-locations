@@ -3,6 +3,7 @@
 
 from datetime import datetime
 
+from geoalchemy2 import Geometry
 from sqlalchemy import Column, DateTime, Float, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
@@ -10,17 +11,16 @@ Base = declarative_base()
 
 
 class GivingPartnerLocations(Base):
-    """giving_partner_locations table"""
+    """google_giving_partner_locations table"""
 
-    __tablename__ = "giving_partner_locations"
+    __tablename__ = "google_giving_partner_locations"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    place_id = Column(String(255), primary_key=True, nullable=False)
     giving_partner_id = Column(Integer, index=True)
     address = Column(String(255), nullable=False)
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
-    api_id = Column(String(255), nullable=False)
-    source = Column(String(50), nullable=False)
+    outlines = Column(Geometry(geometry_type="GEOMETRY", srid=4326), nullable=True)
     created_at = Column(DateTime, nullable=False, default=datetime.now)
     updated_at = Column(DateTime, nullable=False, default=datetime.now, onupdate=True)
 

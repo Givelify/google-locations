@@ -10,6 +10,6 @@ Instructions on how to run the script:
  - If you want autocomplete check enabled use the additional parameter "--enable_autocomplete" in the command. Autocomplete check is disabled by default.
  Examples of ways to run:
  'python main.py',
- 'python main.py --gp_id=479",
- 'python main.py --gp_id=479 --enable_autocomplete',
+ 'python main.py --id 479",
+ 'python main.py --id 479 --enable_autocomplete',
  'python main.py --enable_autocomplete'
