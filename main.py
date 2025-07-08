@@ -2,7 +2,6 @@
 
 import argparse
 
-from geoalchemy2.shape import from_shape
 from shapely.geometry import MultiPolygon, Polygon
 from sqlalchemy import and_, func, select
 from sqlalchemy.exc import SQLAlchemyError
