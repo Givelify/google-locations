@@ -176,60 +176,55 @@ class TestGPProcessor(unittest.TestCase):
         )
         mock_session.commit.assert_called_once()
 
-    @patch("main.get_session")
-    @patch("main.autocomplete_check")
-    @patch("main.text_search")
-    @patch("checks.check_topmost")
-    @patch("main.geocoding_api")
-    @patch("main.preprocess_building_outlines")
-    def test_process_gp_text_search_success(
-        self,
-        mock_preprocess_building_outlines,
-        mock_geocoding_api,
-        mock_check_topmost,
-        mock_text_search,
-        mock_autocomplete,
-        mock_get_session,
-    ):
+    def test_process_gp_text_search_success(self):
         """testing function for cases with failure of autocomplete check and text search api success"""  # pylint: disable=line-too-long
-        mock_gp = GivingPartners(
-            name="Faith Center",
-            city="Hope City",
-            state="HC",
-            address="456 Hope Rd",
-            latitude=34.56,
-            longitude=78.90,
-            phone="9876543210",
-            country="USA",
-            zip="45678",
-            active=1,
-            unregistered=0,
-            id=2,
-        )
+        with patch("main.get_session") as mock_get_session, patch(
+            "main.autocomplete_check"
+        ) as mock_autocomplete, patch("main.text_search") as mock_text_search, patch(
+            "checks.check_topmost"
+        ) as mock_check_topmost, patch(
+            "main.geocoding_api"
+        ) as mock_geocoding_api, patch(
+            "main.preprocess_building_outlines"
+        ) as mock_preprocess_building_outlines:
+            mock_gp = GivingPartners(
+                name="Faith Center",
+                city="Hope City",
+                state="HC",
+                address="456 Hope Rd",
+                latitude=34.56,
+                longitude=78.90,
+                phone="9876543210",
+                country="USA",
+                zip="45678",
+                active=1,
+                unregistered=0,
+                id=2,
+            )
 
-        mock_geocoding_api.return_value = MagicMock()
-        mock_preprocess_building_outlines.return_value = MagicMock()
+            mock_geocoding_api.return_value = MagicMock()
+            mock_preprocess_building_outlines.return_value = MagicMock()
 
-        mock_autocomplete.return_value = None
-        mock_top_result = {
-            "displayName": {"text": "Faith Center"},
-            "formattedAddress": "123 test Rd, Hope City, HC, USA",
-            "location": {"latitude": 55.66, "longitude": 33.45},
-            "id": "api_id_456",
-        }
-        mock_text_search.return_value = [mock_top_result]
+            mock_autocomplete.return_value = None
+            mock_top_result = {
+                "displayName": {"text": "Faith Center"},
+                "formattedAddress": "123 test Rd, Hope City, HC, USA",
+                "location": {"latitude": 55.66, "longitude": 33.45},
+                "id": "api_id_456",
+            }
+            mock_text_search.return_value = [mock_top_result]
 
-        mock_check_topmost.return_value = True
+            mock_check_topmost.return_value = True
 
-        mock_session = MagicMock()
-        mock_get_session.return_value = mock_session
-        main.process_gp(mock_gp, mock_session)
-        mock_text_search.assert_called_with(mock_gp)
-        self.assertEqual(
-            mock_session.add.call_args[0][0].address,
-            mock_top_result["formattedAddress"],
-        )
-        mock_session.commit.assert_called_once()
+            mock_session = MagicMock()
+            mock_get_session.return_value = mock_session
+            main.process_gp(mock_gp, mock_session)
+            mock_text_search.assert_called_with(mock_gp)
+            self.assertEqual(
+                mock_session.add.call_args[0][0].address,
+                mock_top_result["formattedAddress"],
+            )
+            mock_session.commit.assert_called_once()
 
     @patch("main.get_session")
     @patch("main.autocomplete_check")
@@ -262,54 +257,51 @@ class TestGPProcessor(unittest.TestCase):
         mock_text_search.assert_called_with(mock_gp)
         mock_session.add.assert_not_called()
 
-    @patch("main.get_session")
-    @patch("main.autocomplete_check")
-    @patch("main.text_search")
-    @patch("checks.check_topmost")
-    @patch("main.geocoding_api")
-    @patch("main.preprocess_building_outlines")
     def test_process_gp_failure_on_hit(
         self,
-        mock_preprocess_building_outlines,
-        mock_geocoding_api,
-        mock_check_topmost,
-        mock_text_search,
-        mock_autocomplete,
-        mock_get_session,
     ):
         """testing function for cases of autocomplete check fail, and the topmost hit of text search api not matching gp from donee_info table"""  # pylint: disable=line-too-long
-        mock_gp = GivingPartners(
-            name="Grace Hall",
-            city="Peaceville",
-            state="PV",
-            address="789 Peace Ave",
-            latitude=90.00,
-            longitude=45.00,
-            phone="1231231234",
-            country="USA",
-            zip="45678",
-            active=1,
-            unregistered=0,
-            id=3,
-        )
+        with patch("main.get_session") as mock_get_session, patch(
+            "main.autocomplete_check"
+        ) as mock_autocomplete, patch("main.text_search") as mock_text_search, patch(
+            "checks.check_topmost"
+        ) as mock_check_topmost, patch(
+            "main.geocoding_api"
+        ) as mock_geocoding_api, patch(
+            "main.preprocess_building_outlines"
+        ) as mock_preprocess_building_outlines:
+            mock_gp = GivingPartners(
+                name="Grace Hall",
+                city="Peaceville",
+                state="PV",
+                address="789 Peace Ave",
+                latitude=90.00,
+                longitude=45.00,
+                phone="1231231234",
+                country="USA",
+                zip="45678",
+                active=1,
+                unregistered=0,
+                id=3,
+            )
 
-        mock_autocomplete.return_value = None
-        mock_geocoding_api.return_value = MagicMock()
-        mock_preprocess_building_outlines.return_value = MagicMock()
-        mock_top_result = {
-            "displayName": {"text": "Grace banquet center"},
-            "formattedAddress": "123 test Rd, test City, TS, USA",
-            "location": {"latitude": 45.67, "longitude": 34.67},
-            "id": "api_id_456",
-        }
-        mock_text_search.return_value = [mock_top_result]
-        mock_session = MagicMock()
-        mock_check_topmost.return_value = False
-        mock_get_session.return_value = mock_session
+            mock_autocomplete.return_value = None
+            mock_geocoding_api.return_value = MagicMock()
+            mock_preprocess_building_outlines.return_value = MagicMock()
+            mock_top_result = {
+                "displayName": {"text": "Grace banquet center"},
+                "formattedAddress": "123 test Rd, test City, TS, USA",
+                "location": {"latitude": 45.67, "longitude": 34.67},
+                "id": "api_id_456",
+            }
+            mock_text_search.return_value = [mock_top_result]
+            mock_session = MagicMock()
+            mock_check_topmost.return_value = False
+            mock_get_session.return_value = mock_session
 
-        main.process_gp(mock_gp, mock_session)
-        mock_text_search.assert_called_with(mock_gp)
-        mock_session.add.assert_not_called()
+            main.process_gp(mock_gp, mock_session)
+            mock_text_search.assert_called_with(mock_gp)
+            mock_session.add.assert_not_called()
 
 
 if __name__ == "__main__":
