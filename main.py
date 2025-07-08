@@ -157,7 +157,9 @@ def main():
         engine.dispose()
 
 
-def process_gp(giving_partner, session, autocomplete_toggle=False):
+def process_gp(
+    giving_partner, session, autocomplete_toggle=False
+):  # pylint: disable=too-many-locals, too-many-branches, too-many-statements
     """Module that processes each GP"""
     if autocomplete_toggle:
         autocomplete_result = autocomplete_check(giving_partner)
@@ -230,7 +232,6 @@ def process_gp(giving_partner, session, autocomplete_toggle=False):
             logger.error(
                 f"Error retrieving building outlines for gp_id: {giving_partner.id}: {e}"
             )
-            preprocessed_outlines = None
         try:
             gp_info2 = gpl(
                 place_id=top_result["id"],
