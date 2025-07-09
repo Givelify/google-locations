@@ -54,19 +54,15 @@ def text_search(gp):
         response.raise_for_status()
         data = response.json()
         return data.get("places", [])
-    except requests.HTTPError as http_error:
-        if http_error.response.status_code == 429:
-            logger.error(
-                f"429 Error while calling Google text search API: {http_error}"
-            )
-            raise http_error
-        raise RuntimeError(
-            f"google places API call HTTP error occured: {http_error}"
-        ) from http_error
     except RequestException as e:
-        raise RuntimeError(
-            f"google places API call failed: {e}"
-        ) from e  # error log this
+        if isinstance(e, requests.HTTPError):
+            if e.response.status_code == 429:
+                logger.error(f"429 Error while calling Google text search API: {e}")
+                raise
+            logger.error(f"google text search API call HTTP error occurred: {e}")
+            raise
+        logger.error(f"google text search API call failed: {e}")
+        raise
 
 
 @retry(
@@ -103,19 +99,15 @@ def call_autocomplete(gp):
         response.raise_for_status()
         data = response.json()
         return data
-    except requests.HTTPError as http_error:
-        if http_error.response.status_code == 429:
-            logger.error(
-                f"429 Error while calling Google text search API: {http_error}"
-            )
-            raise http_error
-        raise RuntimeError(
-            f"google places API call HTTP error occured: {http_error}"
-        ) from http_error
     except RequestException as e:
-        raise RuntimeError(
-            f"google places API call failed: {e}"
-        ) from e  # error log this
+        if isinstance(e, requests.HTTPError):
+            if e.response.status_code == 429:
+                logger.error(f"429 Error while calling Google text search API: {e}")
+                raise
+            logger.error(f"google autocomplete API call HTTP error occurred: {e}")
+            raise
+        logger.error(f"google autocomplete API call failed: {e}")
+        raise
 
 
 @retry(
@@ -139,13 +131,12 @@ def geocoding_api(place_id):
         response.raise_for_status()
         data = response.json()
         return data
-    except requests.HTTPError as http_error:
-        if http_error.response.status_code == 429:
-            raise http_error
-        raise RuntimeError(
-            f"google places API call HTTP error occured: {http_error}"
-        ) from http_error
     except RequestException as e:
-        raise RuntimeError(
-            f"google places API call failed: {e}"
-        ) from e  # error log this
+        if isinstance(e, requests.HTTPError):
+            if e.response.status_code == 429:
+                logger.error(f"429 Error while calling Google text search API: {e}")
+                raise
+            logger.error(f"google geocoding API call HTTP error occurred: {e}")
+            raise
+        logger.error(f"google geocoding API call failed: {e}")
+        raise

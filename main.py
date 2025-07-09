@@ -1,56 +1,17 @@
 """Module that connects to mysql server and performs database operations"""
 
-import argparse
-
-from shapely.geometry import MultiPolygon, Polygon
 from sqlalchemy import and_, func, select
 from sqlalchemy.exc import SQLAlchemyError
 
-from checks import autocomplete_check, check_topmost
+from checks import autocomplete_check
 from config import Config
-from google_api_calls import geocoding_api, text_search
+from google_api_calls import text_search
+from helper import autocomplete_branch, parse_args, text_search_branch
 from models import GivingPartnerLocations as gpl
 from models import GivingPartners as gp
 from models import get_engine, get_session
 
 logger = Config.logger
-
-
-def reverse_coordinates(coordinate_pairs):
-    """Function to reverse convert coordinate format from [long, lat] to [lat, long] to help support correct MySQL insertion of the building outline polygons"""  # pylint: disable=line-too-long
-    reversed_list = []
-    for coordinates in coordinate_pairs:
-        reversed_list.append(reversed(coordinates))
-    return reversed_list
-
-
-def preprocess_building_outlines(building_outlines):
-    """Returns the building outlines co-ordinates as a geometry object"""
-    shapely_geometry = None
-    if building_outlines and len(building_outlines) > 0:
-        coordinates = building_outlines["coordinates"]
-        try:
-            if building_outlines["type"].lower() == "polygon":
-                reversed_coordinates = reverse_coordinates(coordinates[0])
-                shapely_geometry = Polygon(reversed_coordinates)
-            elif building_outlines["type"].lower() == "multipolygon":
-                polygons = []
-                for polygon_coords in coordinates:
-                    reversed_coordinates = reverse_coordinates(polygon_coords[0])
-                    exterior_ring = reversed_coordinates
-                    interior_rings = (
-                        reversed_coordinates[1:] if len(polygon_coords) > 1 else None
-                    )
-                    polygons.append(Polygon(exterior_ring, interior_rings))
-
-                shapely_geometry = MultiPolygon(polygons)
-        except (ValueError, TypeError) as e:
-            logger.error(e)
-            raise e
-
-    if shapely_geometry is not None:
-        return shapely_geometry.wkt
-    return None
 
 
 def base_filter(giving_partner, active, unregistered):
@@ -61,29 +22,6 @@ def base_filter(giving_partner, active, unregistered):
         giving_partner.country.isnot(None),
         func.trim(giving_partner.country) != "",
     ]
-
-
-def parse_args():
-    """function to parse optional giving partner id command line argument"""
-    parser = argparse.ArgumentParser(
-        description="optional giving partner id and enable autocomplete check toggle"
-    )
-    parser.add_argument("--id", type=int)
-
-    parser.add_argument(
-        "--enable_autocomplete",
-        action="store_true",
-        help="Enable autocomplete check",
-        default=False,
-    )
-    try:
-        args = parser.parse_args()
-    except SystemExit:
-        logger.error(
-            "parsing command line arguments failed: please ensure you input '--enable_autocomplete' and/or 'id {ID}' and please make sure ID is an integer"  # pylint: disable=line-too-long
-        )
-        raise
-    return args
 
 
 def main():
@@ -136,7 +74,7 @@ def main():
                     logger.info("No Giving partners left to process")
                     return
                 logger.info(
-                    f"No active and unregistered GP exists with the provided id: {args.id} in the donee_info / giving patners table"  # pylint: disable=line-too-long
+                    f"No active and registered GP exists with the provided id: {args.id} in the donee_info / giving patners table"  # pylint: disable=line-too-long
                 )
                 return
             for giving_partner in result:
@@ -149,7 +87,7 @@ def main():
                         session,
                         autocomplete_toggle=args.enable_autocomplete,
                     )
-                except (KeyError, TypeError) as e:
+                except Exception as e:  # pylint: disable=broad-exception-caught
                     logger.error(f"Error in process_gp(): {e}")
     except SQLAlchemyError as e:
         logger.error(f"failed to create session: {e}")
@@ -157,97 +95,25 @@ def main():
         engine.dispose()
 
 
-def process_gp(
-    giving_partner, session, autocomplete_toggle=False
-):  # pylint: disable=too-many-locals, too-many-branches, too-many-statements
+def process_gp(giving_partner, session, autocomplete_toggle=False):
     """Module that processes each GP"""
     if autocomplete_toggle:
         autocomplete_result = autocomplete_check(giving_partner)
         if autocomplete_result:
-            gp_address = f"{giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
-            try:
-                geocoding_result = geocoding_api(autocomplete_result)
-                results = geocoding_result.get("results", [])
-                if results and len(results) > 0:
-                    building_outlines = results[0]["buildings"][0]["building_outlines"][
-                        0
-                    ]["display_polygon"]
-                    preprocessed_outlines = preprocess_building_outlines(
-                        building_outlines
-                    )
-                    location = results[0]["geometry"]["location"]
-                    latitude = location["lat"]
-                    longitude = location["lng"]
-                    address = results[0]["formatted_address"]
-                else:
-                    raise RuntimeError
-            except RuntimeError:
-                preprocessed_outlines = None
-                latitude = giving_partner.latitude
-                longitude = giving_partner.longitude
-                address = gp_address
-            try:
-                gp_info = gpl(
-                    place_id=autocomplete_result,
-                    giving_partner_id=giving_partner.id,
-                    address=address,
-                    outlines=preprocessed_outlines,
-                    latitude=latitude,
-                    longitude=longitude,
-                )
-                session.add(gp_info)
-                session.commit()
-                logger.info(f"succesfully processed {giving_partner.name}")
-            except SQLAlchemyError as e:
-                logger.error(f"sqlalchemy insertion error: {e}")
-                raise
+            autocomplete_branch(giving_partner, session, autocomplete_result)
             return
     else:
-        logger.error(
+        logger.info(
             "skipping autocomplete check as autocomplete was not toggled on using 'enable_autocomplete'"  # pylint: disable=line-too-long
         )
     try:
         text_search_results = text_search(giving_partner)
-    except Exception as e:
-        logger.error(f"Error calling google text search API: {e}")
-        raise
-    if len(text_search_results) > 0:
-        # get the topmost result from the text search assuming it is the right GP
-        top_result = text_search_results[0]
-        if not check_topmost(top_result, giving_partner):
-            logger.info(
-                f"not processed as the topmost result from text search {top_result["displayName"]["text"]} does not match gp name {giving_partner.name}"  # pylint: disable=line-too-long
-            )
+        if len(text_search_results) > 0:
+            text_search_branch(giving_partner, text_search_results, session)
             return
-        preprocessed_outlines = None
-        try:
-            geocoding_result = geocoding_api(top_result["id"])
-            results = geocoding_result.get("results", [])
-            if results and len(results) > 0:
-                building_outlines = results[0]["buildings"][0]["building_outlines"][0][
-                    "display_polygon"
-                ]
-                preprocessed_outlines = preprocess_building_outlines(building_outlines)
-        except (RuntimeError, ValueError, TypeError) as e:
-            logger.error(
-                f"Error retrieving building outlines for gp_id: {giving_partner.id}: {e}"
-            )
-        try:
-            gp_info2 = gpl(
-                place_id=top_result["id"],
-                giving_partner_id=giving_partner.id,
-                address=top_result["formattedAddress"],
-                outlines=preprocessed_outlines,
-                latitude=top_result["location"]["latitude"],
-                longitude=top_result["location"]["longitude"],
-            )
-            session.add(gp_info2)
-            session.commit()
-            logger.info(f"succesfully processed {giving_partner.name}")
-        except (SQLAlchemyError, KeyError, TypeError) as e:
-            logger.error(f"Insertion failed for {giving_partner.name}: {e}")
-            raise
-        return
+    except Exception as e:
+        logger.error(f"Exception in handle_text_search(): {e}")
+        raise
     logger.info(
         "not processed as neither autocomplete check passed nor the topmost result from text search does not match"  # pylint: disable=line-too-long
     )

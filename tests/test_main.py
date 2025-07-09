@@ -4,6 +4,7 @@ import unittest
 from argparse import Namespace
 from unittest.mock import MagicMock, patch
 
+import helper
 import main
 from models import GivingPartners
 
@@ -71,14 +72,20 @@ class TestGPProcessor(unittest.TestCase):
             },
         ]
 
-        preprocessed_outlines = main.preprocess_building_outlines(building_outlines[0])
+        preprocessed_outlines = helper.preprocess_building_outlines(
+            building_outlines[0]
+        )
         self.assertEqual(preprocessed_outlines[:7], "POLYGON")
-        preprocessed_outlines = main.preprocess_building_outlines(building_outlines[1])
+        preprocessed_outlines = helper.preprocess_building_outlines(
+            building_outlines[1]
+        )
         self.assertIsNone(preprocessed_outlines)
-        preprocessed_outlines = main.preprocess_building_outlines(building_outlines[2])
+        preprocessed_outlines = helper.preprocess_building_outlines(
+            building_outlines[2]
+        )
         self.assertEqual(preprocessed_outlines[:12], "MULTIPOLYGON")
         with self.assertRaises(Exception):
-            main.preprocess_building_outlines(building_outlines[3])
+            helper.preprocess_building_outlines(building_outlines[3])
 
     def test_parse_args(self):
         """tests for parsing command line arguments"""
@@ -98,16 +105,16 @@ class TestGPProcessor(unittest.TestCase):
 
         with patch("sys.argv", ["main.py", "--id", "string"]):
             with self.assertRaises(SystemExit):
-                main.parse_args()
+                helper.parse_args()
         with patch("sys.argv", ["main.py", "--id", "string1", "string2"]):
             with self.assertRaises(SystemExit):
-                main.parse_args()
+                helper.parse_args()
         with patch("sys.argv", ["main.py", "--id", "500", "string2"]):
             with self.assertRaises(SystemExit):
-                main.parse_args()
+                helper.parse_args()
         with patch("sys.argv", ["main.py", "xyz"]):
             with self.assertRaises(SystemExit):
-                main.parse_args()
+                helper.parse_args()
 
     @patch("main.get_engine")
     @patch("main.get_session")
@@ -136,8 +143,8 @@ class TestGPProcessor(unittest.TestCase):
 
     @patch("main.get_session")
     @patch("main.autocomplete_check")
-    @patch("main.geocoding_api")
-    @patch("main.preprocess_building_outlines")
+    @patch("helper.geocoding_api")
+    @patch("helper.preprocess_building_outlines")
     def test_process_gp_autocomplete_success(
         self,
         mock_preprocess_building_outlines,
@@ -183,9 +190,9 @@ class TestGPProcessor(unittest.TestCase):
         ) as mock_autocomplete, patch("main.text_search") as mock_text_search, patch(
             "checks.check_topmost"
         ) as mock_check_topmost, patch(
-            "main.geocoding_api"
+            "helper.geocoding_api"
         ) as mock_geocoding_api, patch(
-            "main.preprocess_building_outlines"
+            "helper.preprocess_building_outlines"
         ) as mock_preprocess_building_outlines:
             mock_gp = GivingPartners(
                 name="Faith Center",
@@ -266,9 +273,9 @@ class TestGPProcessor(unittest.TestCase):
         ) as mock_autocomplete, patch("main.text_search") as mock_text_search, patch(
             "checks.check_topmost"
         ) as mock_check_topmost, patch(
-            "main.geocoding_api"
+            "helper.geocoding_api"
         ) as mock_geocoding_api, patch(
-            "main.preprocess_building_outlines"
+            "helper.preprocess_building_outlines"
         ) as mock_preprocess_building_outlines:
             mock_gp = GivingPartners(
                 name="Grace Hall",

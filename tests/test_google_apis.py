@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-import requests
+from requests.exceptions import RequestException
 
 from google_api_calls import call_autocomplete, geocoding_api, text_search
 from models import GivingPartners
@@ -81,10 +81,10 @@ class TestApiFunctions(unittest.TestCase):
         )
 
         text_search(gp_data)
-        self.assertRaises(RuntimeError)
+        self.assertRaises(RequestException)
         # if a 429 occurs
         text_search(gp_data)
-        self.assertRaises(requests.HTTPError)
+        self.assertRaises(RequestException)
         self.assertGreaterEqual(mock_post.call_count, 2)
 
     @patch("google_api_calls.requests.post")
@@ -169,10 +169,10 @@ class TestApiFunctions(unittest.TestCase):
         )
 
         call_autocomplete(gp_data)
-        self.assertRaises(RuntimeError)
+        self.assertRaises(RequestException)
         # if a 429 occurs
         call_autocomplete(gp_data)
-        self.assertRaises(requests.HTTPError)
+        self.assertRaises(RequestException)
         self.assertGreaterEqual(mock_post.call_count, 2)
 
     @patch("google_api_calls.requests.post")
@@ -362,10 +362,10 @@ class TestApiFunctions(unittest.TestCase):
         place_id = "slfgrewoufewqifipew"
 
         geocoding_api(place_id)
-        self.assertRaises(RuntimeError)
+        self.assertRaises(RequestException)
         # if a 429 occurs
         geocoding_api(place_id)
-        self.assertRaises(requests.HTTPError)
+        self.assertRaises(RequestException)
         self.assertGreaterEqual(mock_post.call_count, 2)
 
 
