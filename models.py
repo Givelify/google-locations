@@ -10,7 +10,7 @@ from sqlalchemy.orm import declarative_base, sessionmaker
 Base = declarative_base()
 
 
-class GivingPartnerLocations(Base):
+class GoogleGivingPartnerLocations(Base):
     """google_giving_partner_locations table"""
 
     __tablename__ = "google_giving_partner_locations"

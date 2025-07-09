@@ -20,7 +20,7 @@ def is_retryable(exception):
     """function that returns whether the google api call error is a 429 error
     so that the call could be retried"""
     return (
-        isinstance(exception, requests.HTTPError)
+        isinstance(exception, RequestException)
         and exception.response.status_code == 429
     )
 
@@ -55,13 +55,14 @@ def text_search(gp):
         data = response.json()
         return data.get("places", [])
     except RequestException as e:
-        if isinstance(e, requests.HTTPError):
-            if e.response.status_code == 429:
-                logger.error(f"429 Error while calling Google text search API: {e}")
-                raise
-            logger.error(f"google text search API call HTTP error occurred: {e}")
-            raise
-        logger.error(f"google text search API call failed: {e}")
+        if (
+            isinstance(e, requests.HTTPError)
+            and e.response is not None
+            and e.response.status_code == 429
+        ):
+            logger.error(f"429 Error while calling Google text search API: {e}")
+        else:
+            logger.error(f"Google text search API call failed: {e}")
         raise
 
 
@@ -100,13 +101,14 @@ def call_autocomplete(gp):
         data = response.json()
         return data
     except RequestException as e:
-        if isinstance(e, requests.HTTPError):
-            if e.response.status_code == 429:
-                logger.error(f"429 Error while calling Google text search API: {e}")
-                raise
-            logger.error(f"google autocomplete API call HTTP error occurred: {e}")
-            raise
-        logger.error(f"google autocomplete API call failed: {e}")
+        if (
+            isinstance(e, requests.HTTPError)
+            and e.response is not None
+            and e.response.status_code == 429
+        ):
+            logger.error(f"429 Error while calling Google Autocomplete API: {e}")
+        else:
+            logger.error(f"Google Autocomplete API call failed: {e}")
         raise
 
 
@@ -132,11 +134,12 @@ def geocoding_api(place_id):
         data = response.json()
         return data
     except RequestException as e:
-        if isinstance(e, requests.HTTPError):
-            if e.response.status_code == 429:
-                logger.error(f"429 Error while calling Google text search API: {e}")
-                raise
-            logger.error(f"google geocoding API call HTTP error occurred: {e}")
-            raise
-        logger.error(f"google geocoding API call failed: {e}")
+        if (
+            isinstance(e, requests.HTTPError)
+            and e.response is not None
+            and e.response.status_code == 429
+        ):
+            logger.error(f"429 Error while calling Google geocoding API: {e}")
+        else:
+            logger.error(f"Google Geocoding API call failed: {e}")
         raise

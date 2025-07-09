@@ -7,8 +7,8 @@ from checks import autocomplete_check
 from config import Config
 from google_api_calls import text_search
 from helper import autocomplete_branch, parse_args, text_search_branch
-from models import GivingPartnerLocations as gpl
 from models import GivingPartners as gp
+from models import GoogleGivingPartnerLocations as gpl
 from models import get_engine, get_session
 
 logger = Config.logger
@@ -106,14 +106,10 @@ def process_gp(giving_partner, session, autocomplete_toggle=False):
         logger.info(
             "skipping autocomplete check as autocomplete was not toggled on using 'enable_autocomplete'"  # pylint: disable=line-too-long
         )
-    try:
-        text_search_results = text_search(giving_partner)
-        if len(text_search_results) > 0:
-            text_search_branch(giving_partner, text_search_results, session)
-            return
-    except Exception as e:
-        logger.error(f"Exception in handle_text_search(): {e}")
-        raise
+    text_search_results = text_search(giving_partner)
+    if len(text_search_results) > 0:
+        text_search_branch(giving_partner, text_search_results, session)
+        return
     logger.info(
         "not processed as neither autocomplete check passed nor the topmost result from text search does not match"  # pylint: disable=line-too-long
     )

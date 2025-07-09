@@ -8,13 +8,12 @@ from sqlalchemy.exc import SQLAlchemyError
 from checks import check_topmost
 from config import Config
 from google_api_calls import geocoding_api
-from models import GivingPartnerLocations as gpl
+from models import GoogleGivingPartnerLocations as gpl
 
 logger = Config.logger
 
 
-def handle_sql_insertion(  # pylint: disable=too-many-arguments, too-many-positional-arguments
-    giving_partner,
+def insert_google_gp_location(  # pylint: disable=too-many-arguments, too-many-positional-arguments
     place_id,
     giving_partner_id,
     address,
@@ -35,7 +34,9 @@ def handle_sql_insertion(  # pylint: disable=too-many-arguments, too-many-positi
         )
         session.add(gp_info)
         session.commit()
-        logger.info(f"succesfully processed {giving_partner.name}")
+        logger.info(
+            f"succesfully inserted google location data for gp_id: {giving_partner_id}"
+        )
     except SQLAlchemyError as e:
         logger.error(f"sqlalchemy insertion error: {e}")
         raise
@@ -64,18 +65,18 @@ def parse_args():
     return args
 
 
-def reverse_coordinates(r):
+def reverse_coordinates(coordinate_pairs):
     """Function to reverse convert coordinate format from [long, lat] to [lat, long] to help support correct MySQL insertion of the building outline polygons"""  # pylint: disable=line-too-long
-    reversed_list = [reversed(coordinates) for coordinates in r]
+    reversed_list = [reversed(coordinates) for coordinates in coordinate_pairs]
     return reversed_list
 
 
-def preprocess_building_outlines(o):
+def preprocess_building_outlines(outlines):
     """Returns the preprocessed building outlines co-ordinates as a geometry object"""
     shapely_geometry = None
-    if o and len(o) > 0:
-        coordinates = o["coordinates"]
-        t = o.get("type", "").lower() if isinstance(o, dict) else ""
+    if outlines and len(outlines) > 0:
+        coordinates = outlines["coordinates"]
+        t = outlines.get("type", "").lower() if isinstance(outlines, dict) else ""
         try:
             if t == "polygon":
                 reversed_coordinates = reverse_coordinates(coordinates[0])
@@ -118,8 +119,7 @@ def autocomplete_branch(giving_partner, session, autocomplete_result):
             latitude = location["lat"]
             longitude = location["lng"]
             address = results[0]["formatted_address"]
-        handle_sql_insertion(
-            giving_partner=giving_partner,
+        insert_google_gp_location(
             place_id=autocomplete_result,
             giving_partner_id=giving_partner.id,
             address=address,
@@ -129,7 +129,8 @@ def autocomplete_branch(giving_partner, session, autocomplete_result):
             session=session,
         )
     except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.error(f"Failure in Automcomplete logic: {e}")
+        logger.error(f"Failure in Automcomplete branch: {e}")
+        raise
 
 
 def text_search_branch(giving_partner, text_search_results, session):
@@ -138,7 +139,7 @@ def text_search_branch(giving_partner, text_search_results, session):
     top_result = text_search_results[0]
     if not check_topmost(top_result, giving_partner):
         logger.info(
-            f"not processed as the topmost result from text search {top_result["displayName"]["text"]} does not match gp name {giving_partner.name}"  # pylint: disable=line-too-long
+            f"not processed as the topmost result from text search {top_result["displayName"]["text"]} does not match gp name {giving_partner.name} with gp_id {giving_partner.id}"  # pylint: disable=line-too-long
         )
         return
     preprocessed_outlines = None
@@ -150,8 +151,7 @@ def text_search_branch(giving_partner, text_search_results, session):
                 "display_polygon"
             ]
             preprocessed_outlines = preprocess_building_outlines(building_outlines)
-        handle_sql_insertion(
-            giving_partner,
+        insert_google_gp_location(
             top_result["id"],
             giving_partner.id,
             top_result["formattedAddress"],
