@@ -10,8 +10,6 @@ from models import GoogleGivingPartnerLocations as gpl
 from shapely.geometry import MultiPolygon, Polygon
 from sqlalchemy import and_, select, func
 from sqlalchemy.exc import SQLAlchemyError
-from models import GivingPartners as gp
-from models import GoogleGivingPartnerLocations as gpl
 
 logger = Config.logger
 
