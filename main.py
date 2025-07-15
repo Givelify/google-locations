@@ -28,7 +28,13 @@ def base_filter(giving_partner, active, unregistered):
 
 def main():
     """Main module"""
+    r = redis.Redis(
+        host="localhost", port=6379, db=0  # The default Redis database index
+    )
     try:
+        r = redis.Redis(
+            host="localhost", port=6379, db=0  # The default Redis database index
+        )
         args = parse_args()
 
         engine = get_engine(
@@ -38,12 +44,15 @@ def main():
             db_password=Config.DB_PASSWORD,
             db_name=Config.DB_NAME,
         )
-        # log success
+        logger.info("Successfully created the MySQL Engine")
     except SystemExit:
         logger.error("parsing args failed")
         raise
     except SQLAlchemyError as e:
         logger.error(f"Failed to initialize database engine: {e}")  # error log this
+        raise
+    except RedisError as e:
+        logger.error(f"Redis Connection Error: {e}")
         raise
     active = 1
     unregistered = 0
