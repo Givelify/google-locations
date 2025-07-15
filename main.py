@@ -92,14 +92,14 @@ def main():
                 logger.info(
                     f"Processing donee_id: {giving_partner.id}, name: {giving_partner.name}, address: {giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
                 )
+                if args.cache_check:
+                    if r.sismember("Non_processed_GPs", giving_partner.id):
+                        logger.info(
+                            f"""GP ID: {giving_partner.id} failed run before, can't process it for a month from its initial run.
+                            If you want to run it anyway, run 'python main.py --id {{ID}} --cache_check=False'"""  # pylint: disable=line-too-long
+                        )
+                        continue
                 try:
-                    if args.cache_check:
-                        if r.sismember("Non_processed_GPs", giving_partner.id):
-                            logger.info(
-                                f"""GP ID: {giving_partner.id} failed run before, can't process it for a month from its initial run.
-                                If you want to run it anyway, run 'python main.py --id {{ID}} --cache_check=False'"""  # pylint: disable=line-too-long
-                            )
-                            continue
                     process_gp(
                         giving_partner,
                         session,
