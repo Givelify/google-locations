@@ -2,12 +2,15 @@
 
 import argparse
 
-from shapely.geometry import MultiPolygon, Polygon
-from sqlalchemy.exc import SQLAlchemyError
-
 from checks import check_topmost
 from config import Config
 from google_api_calls import geocoding_api
+from models import GivingPartners as gp
+from models import GoogleGivingPartnerLocations as gpl
+from shapely.geometry import MultiPolygon, Polygon
+from sqlalchemy import and_, select, func
+from sqlalchemy.exc import SQLAlchemyError
+from models import GivingPartners as gp
 from models import GoogleGivingPartnerLocations as gpl
 
 logger = Config.logger
@@ -41,7 +44,38 @@ def insert_google_gp_location(  # pylint: disable=too-many-arguments, too-many-p
         logger.error(f"sqlalchemy insertion error: {e}")
         raise
 
+def base_filter(giving_partner, active, unregistered):
+    "base filter to reuse in SELECT queries to retrieve GPs from donee_info DB"
+    return [
+        giving_partner.active == active,
+        giving_partner.unregistered == unregistered,
+        giving_partner.country.isnot(None),
+        func.trim(giving_partner.country) != "",
+    ]
 
+def mysql_query(specific_gp_id):
+    """Function that returns which query to use to get the GPs to process"""
+    active = 1
+    unregistered = 0
+    if specific_gp_id is None:
+        return (
+            select(gp)
+            .join(gpl, gp.id == gpl.giving_partner_id, isouter=True)
+            .where(
+                and_(
+                    gpl.giving_partner_id.is_(None),
+                    *base_filter(gp, active, unregistered),
+                )
+            )
+            .limit(1)
+        )
+    else:
+        return select(gp).where(
+            and_(
+                gp.id == specific_gp_id,
+                *base_filter(gp, active, unregistered),
+            )
+        )
 def parse_args():
     """function to parse optional giving partner id command line argument"""
     parser = argparse.ArgumentParser(
@@ -145,7 +179,7 @@ def text_search_branch(giving_partner, text_search_results, session):
     top_result = text_search_results[0]
     if not check_topmost(top_result, giving_partner):
         logger.info(
-            f"not processed as the topmost result from text search {top_result["displayName"]["text"]} does not match gp name {giving_partner.name} with gp_id {giving_partner.id}"  # pylint: disable=line-too-long
+            f"Text search run failed as the topmost result from text search {top_result["displayName"]["text"]} does not match gp name {giving_partner.name} with gp_id {giving_partner.id}"  # pylint: disable=line-too-long
         )
         return
     preprocessed_outlines = None
