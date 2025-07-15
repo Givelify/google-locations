@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+  python-app:
+    build: .
+    container_name: python-app
+    volumes:
+      - .:/google-locations
+    working_dir: /google-locations
+    ports:
+      - "8000:8000"
+    environment:
+      - MYSQL_HOST=127.0.0.1
+      - MYSQL_PORT=13306
+      - MYSQL_USER=givelify
+      - MYSQL_PASSWORD=givelify
+      - MYSQL_DB=platform
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+    depends_on:
+      - redis
+    networks:
+      - google_locations_backend_net
+
+  redis:
+    image: redis:7
+    container_name: my_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - google_locations_backend_net
+
+networks:
+  google_locations_backend_net:
+    external: true

@@ -55,6 +55,12 @@ def parse_args():
         help="Enable autocomplete check",
         default=False,
     )
+    parser.add_argument(
+        "--cache_check",
+        type=bool,
+        default=True,
+        help="Redis Cache check for non processed GP IDs",
+    )
     try:
         args = parser.parse_args()
     except SystemExit:
