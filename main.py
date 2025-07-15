@@ -1,5 +1,7 @@
 """Module that connects to mysql server and performs database operations"""
 
+import redis
+from redis.exceptions import RedisError
 from sqlalchemy import and_, func, select
 from sqlalchemy.exc import SQLAlchemyError
 
