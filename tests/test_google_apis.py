@@ -3,9 +3,9 @@
 import unittest
 from unittest.mock import MagicMock, patch
 
-import requests
+from requests.exceptions import RequestException
 
-from google_api_calls import call_autocomplete, text_search
+from google_api_calls import call_autocomplete, geocoding_api, text_search
 from models import GivingPartners
 
 
@@ -81,10 +81,10 @@ class TestApiFunctions(unittest.TestCase):
         )
 
         text_search(gp_data)
-        self.assertRaises(RuntimeError)
+        self.assertRaises(RequestException)
         # if a 429 occurs
         text_search(gp_data)
-        self.assertRaises(requests.HTTPError)
+        self.assertRaises(RequestException)
         self.assertGreaterEqual(mock_post.call_count, 2)
 
     @patch("google_api_calls.requests.post")
@@ -169,10 +169,10 @@ class TestApiFunctions(unittest.TestCase):
         )
 
         call_autocomplete(gp_data)
-        self.assertRaises(RuntimeError)
+        self.assertRaises(RequestException)
         # if a 429 occurs
         call_autocomplete(gp_data)
-        self.assertRaises(requests.HTTPError)
+        self.assertRaises(RequestException)
         self.assertGreaterEqual(mock_post.call_count, 2)
 
     @patch("google_api_calls.requests.post")
@@ -234,6 +234,139 @@ class TestApiFunctions(unittest.TestCase):
             ]["text"],
             "West test Drive, test city, TS, USA",
         )
+
+    @patch("google_api_calls.requests.post")
+    def test_geocoding_api_success(self, mock_post):
+        """Mock the response from the geocoding_api api"""
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_response.json.return_value = {
+            "results": [
+                {
+                    "address_components": [
+                        {
+                            "long_name": "707",
+                            "short_name": "707",
+                            "types": ["street_number"],
+                        },
+                        {
+                            "long_name": "Collins Avenue",
+                            "short_name": "Collins Ave",
+                            "types": ["route"],
+                        },
+                        {
+                            "long_name": "Ava",
+                            "short_name": "Ava",
+                            "types": ["locality", "political"],
+                        },
+                        {
+                            "long_name": "Benton Township",
+                            "short_name": "Benton Township",
+                            "types": ["administrative_area_level_3", "political"],
+                        },
+                        {
+                            "long_name": "Douglas County",
+                            "short_name": "Douglas County",
+                            "types": ["administrative_area_level_2", "political"],
+                        },
+                        {
+                            "long_name": "Missouri",
+                            "short_name": "MO",
+                            "types": ["administrative_area_level_1", "political"],
+                        },
+                        {
+                            "long_name": "United States",
+                            "short_name": "US",
+                            "types": ["country", "political"],
+                        },
+                        {
+                            "long_name": "65608",
+                            "short_name": "65608",
+                            "types": ["postal_code"],
+                        },
+                    ],
+                    "buildings": [
+                        {
+                            "building_outlines": [
+                                {
+                                    "display_polygon": {
+                                        "type": "Polygon",
+                                        "coordinates": [
+                                            [
+                                                [-92.6653733154025, 36.9425329312773],
+                                                [-92.6656607099443, 36.9425568255168],
+                                                [-92.6656936027867, 36.94230221016],
+                                                [-92.6654060564636, 36.9422783192727],
+                                                [-92.6653733154025, 36.9425329312773],
+                                            ]
+                                        ],
+                                    }
+                                }
+                            ],
+                            "place_id": "wiebiwebewfbweiqbfiq",
+                        }
+                    ],
+                    "formatted_address": "707 Collins Ave, Ava, MO 65608, USA",
+                    "geometry": {
+                        "location": {"lat": 36.9424231, "lng": -92.6655258},
+                        "location_type": "ROOFTOP",
+                        "viewport": {
+                            "northeast": {
+                                "lat": 36.94376348029149,
+                                "lng": -92.66406181970851,
+                            },
+                            "southwest": {
+                                "lat": 36.94106551970849,
+                                "lng": -92.66675978029151,
+                            },
+                        },
+                    },
+                    "navigation_points": [
+                        {"location": {"latitude": 36.9424118, "longitude": -92.6653743}}
+                    ],
+                    "place_id": "wiebiwebewfbweiqbfiq",
+                    "plus_code": {
+                        "compound_code": "W8RM+XQ Ava, MO",
+                        "global_code": "8689W8RM+XQ",
+                    },
+                    "types": [
+                        "church",
+                        "establishment",
+                        "place_of_worship",
+                        "point_of_interest",
+                    ],
+                }
+            ],
+            "status": "OK",
+        }
+
+        mock_post.return_value = mock_response
+
+        place_id = "wiebiwebewfbweiqbfiq"
+        result = geocoding_api(place_id)
+
+        self.assertGreaterEqual(len(result), 1, "geocoding_api call success")
+        self.assertEqual(
+            result["results"][0]["buildings"][0]["place_id"],
+            place_id,
+        )
+
+    @patch("google_api_calls.requests.post")
+    def test_geocoding_api_failure(self, mock_post):
+        """Mock a failed response for text_search api call (non-200 status code)"""
+        mock_response = MagicMock()
+        mock_response.status_code.side_effect = [500, 429]
+        mock_response.text = "Error: Something went wrong"
+        mock_post.return_value = mock_response
+
+        place_id = "slfgrewoufewqifipew"
+
+        geocoding_api(place_id)
+        self.assertRaises(RequestException)
+        # if a 429 occurs
+        geocoding_api(place_id)
+        self.assertRaises(RequestException)
+        self.assertGreaterEqual(mock_post.call_count, 2)
 
 
 if __name__ == "__main__":
