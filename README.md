@@ -11,5 +11,5 @@ Spin this project up in docker through the following steps:
  The optional command line args you can use are:
  1. --id <ID>: If you want to process a specific GP from donee_info table by providing their ID
  2. --enable_autocomplete: processes GPs while utilizing autocomplete API. Autocomplete check is disabled by default.
- 3. --cache_check <Bool>: Enables Redis cache check to see if a GP has previosuly failed to avoid running them again. The redis cache stores the GP IDs for a month from when they first failed. Use '--cache_check IDs cache_check is True by default
+ 3. --cache_check <Bool>: Enables Redis cache check to see if a GP has previosuly failed to avoid running them again. The redis cache stores the GP IDs for a month from when they first failed. Use '--cache_check <Bool> arg to enable to disable it. cache_check is True by default
 
