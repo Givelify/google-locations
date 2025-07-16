@@ -6,8 +6,8 @@ from unittest.mock import MagicMock, patch
 
 import helper
 import main
-from models import GivingPartners
 from config import Config
+from models import GivingPartners
 
 
 class TestGPProcessor(unittest.TestCase):
