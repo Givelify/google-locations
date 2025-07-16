@@ -42,6 +42,7 @@ def insert_google_gp_location(  # pylint: disable=too-many-arguments, too-many-p
         logger.error(f"sqlalchemy insertion error: {e}")
         raise
 
+
 def base_filter(giving_partner, active, unregistered):
     "base filter to reuse in SELECT queries to retrieve GPs from donee_info DB"
     return [
@@ -50,6 +51,7 @@ def base_filter(giving_partner, active, unregistered):
         giving_partner.country.isnot(None),
         func.trim(giving_partner.country) != "",
     ]
+
 
 def mysql_query(specific_gp_id):
     """Function that returns which query to use to get the GPs to process"""
@@ -74,6 +76,8 @@ def mysql_query(specific_gp_id):
                 *base_filter(gp, active, unregistered),
             )
         )
+
+
 def parse_args():
     """function to parse optional giving partner id command line argument"""
     parser = argparse.ArgumentParser(
@@ -95,12 +99,12 @@ def parse_args():
     )
     try:
         args = parser.parse_args()
+        return args
     except SystemExit:
         logger.error(
             "parsing command line arguments failed: please ensure you input '--enable_autocomplete' and/or 'id {ID}' and please make sure ID is an integer"  # pylint: disable=line-too-long
         )
         raise
-    return args
 
 
 def reverse_coordinates(coordinate_pairs):

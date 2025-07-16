@@ -13,7 +13,6 @@ from models import get_engine, get_session
 logger = Config.logger
 
 
-
 def main():
     """Main module"""
     try:
