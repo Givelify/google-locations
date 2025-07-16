@@ -58,7 +58,7 @@ def main():
                     f"Processing donee_id: {giving_partner.id}, name: {giving_partner.name}, address: {giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
                 )
                 if args.cache_check:
-                    if r.sismember("Non_processed_GPs", giving_partner.id):
+                    if r.get(giving_partner.id):
                         logger.info(
                             f"""GP ID: {giving_partner.id} failed run before, can't process it for a month from its initial run. If you want to run it anyway, run 'python main.py --id {{ID}} --cache_check=False'"""  # pylint: disable=line-too-long
                         )
@@ -97,7 +97,11 @@ def process_gp(giving_partner, session, redis_engine, autocomplete_toggle=False)
     logger.info(
         "not processed as neither autocomplete check passed nor the text search API returned any valid results"  # pylint: disable=line-too-long
     )
-    redis_engine.sadd("Non_processed_GPs", giving_partner.id)
+    expiry_in_seconds = Config.GP_CACHE_EXPIRE*86400
+    try:
+        redis_engine.setex(giving_partner.id, expiry_in_seconds, giving_partner.name)
+    except RedisError as e:
+        logger.error(f"Redis Caching error for gp_id {giving_partner.id}: {e}")
     return
 
 

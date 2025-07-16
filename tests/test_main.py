@@ -7,6 +7,7 @@ from unittest.mock import MagicMock, patch
 import helper
 import main
 from models import GivingPartners
+from config import Config
 
 
 class TestGPProcessor(unittest.TestCase):
@@ -130,8 +131,8 @@ class TestGPProcessor(unittest.TestCase):
     ):
         """unit test to check whether the select query works or not"""
         with patch("main.redis.Redis") as mock_redis:
-            mock_redis_server = MagicMock()
-            mock_redis.return_value = mock_redis_server
+            mock_redis_server1 = {}
+            mock_redis.side_effect = [mock_redis_server1, {'1': 'test_gp'}]
             mock_engine = MagicMock()
             mock_get_engine.return_value = mock_engine
             mock_session = MagicMock()
@@ -146,8 +147,10 @@ class TestGPProcessor(unittest.TestCase):
             mock_session.scalars.return_value = mock_result
             for result in mock_result:
                 mock_process_gp.assert_called_with(
-                    result, mock_session, mock_redis, mock_args.enable_autocomplete
+                    result, mock_session, mock_redis_server1, mock_args.enable_autocomplete
                 )
+            for result in mock_result:
+                mock_process_gp.assert_not_called()
 
     @patch("main.get_session")
     @patch("main.autocomplete_check")
@@ -285,7 +288,8 @@ class TestGPProcessor(unittest.TestCase):
             main.process_gp(mock_gp, mock_session, mock_redis_server)
             mock_text_search.assert_called_with(mock_gp)
             mock_session.add.assert_not_called()
-            mock_redis_server.sadd.assert_called_with("Non_processed_GPs", mock_gp.id)
+            expiry_in_seconds = Config.GP_CACHE_EXPIRE*24*60*60
+            mock_redis_server.setex.assert_called_with(mock_gp.id, expiry_in_seconds, mock_gp.name)
 
     def test_process_gp_failure_on_hit(
         self,
@@ -336,7 +340,8 @@ class TestGPProcessor(unittest.TestCase):
             main.process_gp(mock_gp, mock_session, mock_redis_server)
             mock_text_search.assert_called_with(mock_gp)
             mock_session.add.assert_not_called()
-            mock_redis_server.sadd.assert_called_with("Non_processed_GPs", mock_gp.id)
+            expiry_in_seconds = Config.GP_CACHE_EXPIRE*24*60*60
+            mock_redis_server.setex.assert_called_with(mock_gp.id, expiry_in_seconds, mock_gp.name)
 
 
 if __name__ == "__main__":
