@@ -7,8 +7,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from checks import autocomplete_check
 from config import Config
 from google_api_calls import text_search
-from helper import (autocomplete_branch, mysql_query, parse_args,
-                    text_search_branch)
+from helper import autocomplete_branch, mysql_query, parse_args, text_search_branch
 from models import get_engine, get_session
 
 logger = Config.logger
