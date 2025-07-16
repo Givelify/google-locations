@@ -29,4 +29,4 @@ class Config:
     REDIS_HOST = os.getenv("REDIS_HOST")
     REDIS_HOST_PORT = os.getenv("REDIS_HOST_PORT")
     REDIS_DB = os.getenv("REDIS_DB")
-    GP_CACHE_EXPIRE = int(os.getenv("GP_CACHE_EXPIRE"))  # in days
+    GP_CACHE_EXPIRE = os.getenv("GP_CACHE_EXPIRE")  # in days

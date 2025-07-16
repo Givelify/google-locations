@@ -92,8 +92,9 @@ def parse_args():
         default=False,
     )
     parser.add_argument(
-        "--cache_check",
-        type=bool,
+        "--disable_cache_check",
+        action="store_false",
+        dest="cache_check",
         default=True,
         help="Redis Cache check for non processed GP IDs",
     )
