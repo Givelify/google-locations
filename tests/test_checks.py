@@ -3,12 +3,8 @@
 import unittest
 from unittest.mock import patch
 
-from checks import (
-    autocomplete_check,
-    check_topmost,
-    fuzzy_address_check,
-    normalize_address,
-)
+from checks import (autocomplete_check, check_topmost, fuzzy_address_check,
+                    normalize_address)
 from models import GivingPartners
 
 

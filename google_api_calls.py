@@ -4,12 +4,8 @@ import json
 
 import requests
 from requests.exceptions import RequestException
-from tenacity import (
-    retry,
-    retry_if_exception_type,
-    stop_after_attempt,
-    wait_exponential,
-)
+from tenacity import (retry, retry_if_exception_type, stop_after_attempt,
+                      wait_exponential)
 
 from config import Config
 

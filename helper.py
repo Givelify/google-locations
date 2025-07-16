@@ -2,14 +2,15 @@
 
 import argparse
 
+from shapely.geometry import MultiPolygon, Polygon
+from sqlalchemy import and_, func, select
+from sqlalchemy.exc import SQLAlchemyError
+
 from checks import check_topmost
 from config import Config
 from google_api_calls import geocoding_api
 from models import GivingPartners as gp
 from models import GoogleGivingPartnerLocations as gpl
-from shapely.geometry import MultiPolygon, Polygon
-from sqlalchemy import and_, select, func
-from sqlalchemy.exc import SQLAlchemyError
 
 logger = Config.logger
 
