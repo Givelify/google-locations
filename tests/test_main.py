@@ -99,6 +99,11 @@ class TestGPProcessor(unittest.TestCase):
             self.assertEqual(args.id, 123)
             self.assertTrue(args.enable_autocomplete)
 
+        with patch("sys.argv", ["main.py", "--id", "123", "--cache_check", "False"]):
+            args = main.parse_args()
+            self.assertEqual(args.id, 123)
+            self.assertTrue(args.cache_check, False)
+
         with patch("sys.argv", ["main.py"]):
             args = main.parse_args()
             self.assertFalse(args.enable_autocomplete)
@@ -124,22 +129,25 @@ class TestGPProcessor(unittest.TestCase):
         self, mock_parse_args, mock_process_gp, mock_get_session, mock_get_engine
     ):
         """unit test to check whether the select query works or not"""
-        mock_engine = MagicMock()
-        mock_get_engine.return_value = mock_engine
-        mock_session = MagicMock()
-        mock_get_session.return_value = mock_session
-        mock_result = MagicMock()
-        mock_args = Namespace(enable_autocomplete=True)
-        mock_parse_args.return_value = mock_args
+        with patch("main.redis.Redis") as mock_redis:
+            mock_redis_server = MagicMock()
+            mock_redis.return_value = mock_redis_server
+            mock_engine = MagicMock()
+            mock_get_engine.return_value = mock_engine
+            mock_session = MagicMock()
+            mock_get_session.return_value = mock_session
+            mock_result = MagicMock()
+            mock_args = Namespace(enable_autocomplete=True)
+            mock_parse_args.return_value = mock_args
 
-        mock_row = MagicMock()
-        mock_row.id = "1"
-        mock_result.all.return_value = [mock_row]
-        mock_session.scalars.return_value = mock_result
-        for result in mock_result:
-            mock_process_gp.assert_called_with(
-                result, mock_session, mock_args.enable_autocomplete
-            )
+            mock_row = MagicMock()
+            mock_row.id = "1"
+            mock_result.all.return_value = [mock_row]
+            mock_session.scalars.return_value = mock_result
+            for result in mock_result:
+                mock_process_gp.assert_called_with(
+                    result, mock_session, mock_redis, mock_args.enable_autocomplete
+                )
 
     @patch("main.get_session")
     @patch("main.autocomplete_check")
@@ -153,35 +161,41 @@ class TestGPProcessor(unittest.TestCase):
         mock_get_session,
     ):
         """testing funciton for cases with a passing autocomplete check"""
-        mock_gp = GivingPartners(
-            name="Test Church",
-            city="Testville",
-            state="TS",
-            address="123 Test St",
-            latitude=12.34,
-            longitude=56.78,
-            phone="2345756757",
-            country="USA",
-            zip="34567",
-            active=1,
-            unregistered=0,
-            id=1,
-        )
+        with patch("main.redis.Redis") as mock_redis:
+            mock_gp = GivingPartners(
+                name="Test Church",
+                city="Testville",
+                state="TS",
+                address="123 Test St",
+                latitude=12.34,
+                longitude=56.78,
+                phone="2345756757",
+                country="USA",
+                zip="34567",
+                active=1,
+                unregistered=0,
+                id=1,
+            )
 
-        mock_geocoding_api.return_value = MagicMock()
-        mock_preprocess_building_outlines.return_value = MagicMock()
+            mock_geocoding_api.return_value = MagicMock()
+            mock_preprocess_building_outlines.return_value = MagicMock()
 
-        # Mock a successful autocomplete check
-        mock_session = MagicMock()
-        mock_get_session.return_value = mock_session
-        mock_autocomplete.return_value = "place_id_123"
+            # Mock a successful autocomplete check
+            mock_redis_server = MagicMock()
+            mock_redis.return_value = mock_redis_server
+            mock_session = MagicMock()
+            mock_get_session.return_value = mock_session
+            mock_autocomplete.return_value = "place_id_123"
 
-        main.process_gp(mock_gp, mock_session, autocomplete_toggle=True)
-        self.assertEqual(
-            mock_session.add.call_args[0][0].address,
-            f"{mock_gp.address}, {mock_gp.city}, {mock_gp.state}, {mock_gp.country}",
-        )
-        mock_session.commit.assert_called_once()
+            main.process_gp(
+                mock_gp, mock_session, mock_redis_server, autocomplete_toggle=True
+            )
+            self.assertEqual(
+                mock_session.add.call_args[0][0].address,
+                f"{mock_gp.address}, {mock_gp.city}, {mock_gp.state}, {mock_gp.country}",
+            )
+            mock_session.commit.assert_called_once()
+            mock_redis_server.assert_not_called()
 
     def test_process_gp_text_search_success(self):
         """testing function for cases with failure of autocomplete check and text search api success"""  # pylint: disable=line-too-long
@@ -193,7 +207,9 @@ class TestGPProcessor(unittest.TestCase):
             "helper.geocoding_api"
         ) as mock_geocoding_api, patch(
             "helper.preprocess_building_outlines"
-        ) as mock_preprocess_building_outlines:
+        ) as mock_preprocess_building_outlines, patch(
+            "main.redis.Redis"
+        ) as mock_redis:
             mock_gp = GivingPartners(
                 name="Faith Center",
                 city="Hope City",
@@ -225,13 +241,16 @@ class TestGPProcessor(unittest.TestCase):
 
             mock_session = MagicMock()
             mock_get_session.return_value = mock_session
-            main.process_gp(mock_gp, mock_session)
+            mock_redis_server = MagicMock()
+            mock_redis.return_value = mock_redis_server
+            main.process_gp(mock_gp, mock_session, mock_redis_server)
             mock_text_search.assert_called_with(mock_gp)
             self.assertEqual(
                 mock_session.add.call_args[0][0].address,
                 mock_top_result["formattedAddress"],
             )
             mock_session.commit.assert_called_once()
+            mock_redis_server.assert_not_called()
 
     @patch("main.get_session")
     @patch("main.autocomplete_check")
@@ -240,29 +259,33 @@ class TestGPProcessor(unittest.TestCase):
         self, mock_text_search, mock_autocomplete, mock_get_session
     ):
         """testing funciton for cases with autcomplete check fail, and no hits for text search api call"""  # pylint: disable=line-too-long
-        mock_gp = GivingPartners(
-            name="Grace Hall",
-            city="Peaceville",
-            state="PV",
-            address="789 Peace Ave",
-            latitude=90.00,
-            longitude=45.00,
-            phone="1231231234",
-            country="USA",
-            zip="45678",
-            active=1,
-            unregistered=0,
-            id=3,
-        )
+        with patch("main.redis.Redis") as mock_redis:
+            mock_gp = GivingPartners(
+                name="Grace Hall",
+                city="Peaceville",
+                state="PV",
+                address="789 Peace Ave",
+                latitude=90.00,
+                longitude=45.00,
+                phone="1231231234",
+                country="USA",
+                zip="45678",
+                active=1,
+                unregistered=0,
+                id=3,
+            )
 
-        mock_autocomplete.return_value = None
-        mock_text_search.return_value = []
-        mock_session = MagicMock()
-        mock_get_session.return_value = mock_session
+            mock_autocomplete.return_value = None
+            mock_text_search.return_value = []
+            mock_session = MagicMock()
+            mock_get_session.return_value = mock_session
+            mock_redis_server = MagicMock()
+            mock_redis.return_value = mock_redis_server
 
-        main.process_gp(mock_gp, mock_session)
-        mock_text_search.assert_called_with(mock_gp)
-        mock_session.add.assert_not_called()
+            main.process_gp(mock_gp, mock_session, mock_redis_server)
+            mock_text_search.assert_called_with(mock_gp)
+            mock_session.add.assert_not_called()
+            mock_redis_server.sadd.assert_called_with("Non_processed_GPs", mock_gp.id)
 
     def test_process_gp_failure_on_hit(
         self,
@@ -276,7 +299,9 @@ class TestGPProcessor(unittest.TestCase):
             "helper.geocoding_api"
         ) as mock_geocoding_api, patch(
             "helper.preprocess_building_outlines"
-        ) as mock_preprocess_building_outlines:
+        ) as mock_preprocess_building_outlines, patch(
+            "main.redis.Redis"
+        ) as mock_redis:
             mock_gp = GivingPartners(
                 name="Grace Hall",
                 city="Peaceville",
@@ -305,10 +330,13 @@ class TestGPProcessor(unittest.TestCase):
             mock_session = MagicMock()
             mock_check_topmost.return_value = False
             mock_get_session.return_value = mock_session
+            mock_redis_server = MagicMock()
+            mock_redis.return_value = mock_redis_server
 
-            main.process_gp(mock_gp, mock_session)
+            main.process_gp(mock_gp, mock_session, mock_redis_server)
             mock_text_search.assert_called_with(mock_gp)
             mock_session.add.assert_not_called()
+            mock_redis_server.sadd.assert_called_with("Non_processed_GPs", mock_gp.id)
 
 
 if __name__ == "__main__":
