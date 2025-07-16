@@ -6,14 +6,14 @@ services:
       - .:/google-locations
     working_dir: /google-locations
     ports:
-      - "${GOOGLE_lOCATIONS_APP_PORT}:8000"
+      - "8000:8000"
     environment:
       - MYSQL_HOST=${DB_HOST}
       - MYSQL_PORT=${DB_PORT}
       - MYSQL_USER=${DB_USERNAME}
       - MYSQL_PASSWORD=${DB_PASSWORD}
       - MYSQL_DB=${DB_NAME}
-      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_HOST=redis
       - REDIS_HOST_PORT=${REDIS_HOST_PORT}
     depends_on:
       - redis
@@ -31,4 +31,4 @@ services:
 networks:
   custom_net:
     external: true
-    name: ${DOCKER_NETWORK}
+    name: google_locations_backend_net

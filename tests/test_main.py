@@ -288,7 +288,9 @@ class TestGPProcessor(unittest.TestCase):
             main.process_gp(mock_gp, mock_session, mock_redis_server)
             mock_text_search.assert_called_with(mock_gp)
             mock_session.add.assert_not_called()
-            expiry_in_seconds = Config.GP_CACHE_EXPIRE*24*60*60
+            mock_config = Config()
+            mock_config.GP_CACHE_EXPIRE = 30
+            expiry_in_seconds = mock_config.GP_CACHE_EXPIRE * 86400
             mock_redis_server.setex.assert_called_with(mock_gp.id, expiry_in_seconds, mock_gp.name)
 
     def test_process_gp_failure_on_hit(
@@ -340,7 +342,9 @@ class TestGPProcessor(unittest.TestCase):
             main.process_gp(mock_gp, mock_session, mock_redis_server)
             mock_text_search.assert_called_with(mock_gp)
             mock_session.add.assert_not_called()
-            expiry_in_seconds = Config.GP_CACHE_EXPIRE*24*60*60
+            mock_config = Config()
+            mock_config.GP_CACHE_EXPIRE = 30
+            expiry_in_seconds = mock_config.GP_CACHE_EXPIRE * 86400
             mock_redis_server.setex.assert_called_with(mock_gp.id, expiry_in_seconds, mock_gp.name)
 
 
