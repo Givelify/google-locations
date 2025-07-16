@@ -201,7 +201,7 @@ class TestGPProcessor(unittest.TestCase):
                 f"{mock_gp.address}, {mock_gp.city}, {mock_gp.state}, {mock_gp.country}",
             )
             mock_session.commit.assert_called_once()
-            mock_redis_server.assert_not_called()
+            mock_redis_server.setex.assert_not_called()
 
     def test_process_gp_text_search_success(self):
         """testing function for cases with failure of autocomplete check and text search api success"""  # pylint: disable=line-too-long
@@ -256,7 +256,7 @@ class TestGPProcessor(unittest.TestCase):
                 mock_top_result["formattedAddress"],
             )
             mock_session.commit.assert_called_once()
-            mock_redis_server.assert_not_called()
+            mock_redis_server.setex.assert_not_called()
 
     @patch("main.get_session")
     @patch("main.autocomplete_check")

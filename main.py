@@ -93,7 +93,9 @@ def process_gp(giving_partner, session, redis_engine, autocomplete_toggle=False)
         )
     text_search_results = text_search(giving_partner)
     if len(text_search_results) > 0:
-        text_search_branch(giving_partner, text_search_results, session)
+        text_search_success = text_search_branch(giving_partner, text_search_results, session)
+        if text_search_success:
+            return
     logger.info(
         "not processed as neither autocomplete check passed nor the text search API returned any valid results"  # pylint: disable=line-too-long
     )

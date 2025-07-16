@@ -184,7 +184,7 @@ def text_search_branch(giving_partner, text_search_results, session):
         logger.info(
             f"Text search run failed as the topmost result from text search {top_result["displayName"]["text"]} does not match gp name {giving_partner.name} with gp_id {giving_partner.id}"  # pylint: disable=line-too-long
         )
-        return
+        return False
     preprocessed_outlines = None
     try:
         geocoding_result = geocoding_api(top_result["id"])
@@ -203,6 +203,7 @@ def text_search_branch(giving_partner, text_search_results, session):
             top_result["location"]["longitude"],
             session,
         )
+        return True
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.error(f"Failure in Text search logic: {e}")
         raise
