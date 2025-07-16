@@ -265,7 +265,9 @@ class TestGPProcessor(unittest.TestCase):
         self, mock_text_search, mock_autocomplete, mock_get_session
     ):
         """testing funciton for cases with autcomplete check fail, and no hits for text search api call"""  # pylint: disable=line-too-long
-        with patch("main.redis.Redis") as mock_redis:
+        with patch("main.redis.Redis") as mock_redis, patch(
+            "main.Config"
+        ) as mock_config:
             mock_gp = GivingPartners(
                 name="Grace Hall",
                 city="Peaceville",
@@ -291,8 +293,7 @@ class TestGPProcessor(unittest.TestCase):
             main.process_gp(mock_gp, mock_session, mock_redis_server)
             mock_text_search.assert_called_with(mock_gp)
             mock_session.add.assert_not_called()
-            mock_config = Config()
-            mock_config.GP_CACHE_EXPIRE = 30
+            mock_config.return_value = {"GP_CACHE_EXPIRE": 30}
             expiry_in_seconds = mock_config.GP_CACHE_EXPIRE * 86400
             mock_redis_server.setex.assert_called_with(
                 mock_gp.id, expiry_in_seconds, mock_gp.name
@@ -312,7 +313,9 @@ class TestGPProcessor(unittest.TestCase):
             "helper.preprocess_building_outlines"
         ) as mock_preprocess_building_outlines, patch(
             "main.redis.Redis"
-        ) as mock_redis:
+        ) as mock_redis, patch(
+            "main.Config"
+        ) as mock_config:
             mock_gp = GivingPartners(
                 name="Grace Hall",
                 city="Peaceville",
@@ -347,8 +350,7 @@ class TestGPProcessor(unittest.TestCase):
             main.process_gp(mock_gp, mock_session, mock_redis_server)
             mock_text_search.assert_called_with(mock_gp)
             mock_session.add.assert_not_called()
-            mock_config = Config()
-            mock_config.GP_CACHE_EXPIRE = 30
+            mock_config.return_value = {"GP_CACHE_EXPIRE": 30}
             expiry_in_seconds = mock_config.GP_CACHE_EXPIRE * 86400
             mock_redis_server.setex.assert_called_with(
                 mock_gp.id, expiry_in_seconds, mock_gp.name
