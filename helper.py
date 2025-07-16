@@ -70,13 +70,12 @@ def mysql_query(specific_gp_id):
             )
             .limit(1)
         )
-    else:
-        return select(gp).where(
-            and_(
-                gp.id == specific_gp_id,
-                *base_filter(gp, active, unregistered),
-            )
+    return select(gp).where(
+        and_(
+            gp.id == specific_gp_id,
+            *base_filter(gp, active, unregistered),
         )
+    )
 
 
 def parse_args():
