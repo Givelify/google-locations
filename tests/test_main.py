@@ -132,7 +132,7 @@ class TestGPProcessor(unittest.TestCase):
         """unit test to check whether the select query works or not"""
         with patch("main.redis.Redis") as mock_redis:
             mock_redis_server1 = {}
-            mock_redis.side_effect = [mock_redis_server1, {'1': 'test_gp'}]
+            mock_redis.side_effect = [mock_redis_server1, {"1": "test_gp"}]
             mock_engine = MagicMock()
             mock_get_engine.return_value = mock_engine
             mock_session = MagicMock()
@@ -147,7 +147,10 @@ class TestGPProcessor(unittest.TestCase):
             mock_session.scalars.return_value = mock_result
             for result in mock_result:
                 mock_process_gp.assert_called_with(
-                    result, mock_session, mock_redis_server1, mock_args.enable_autocomplete
+                    result,
+                    mock_session,
+                    mock_redis_server1,
+                    mock_args.enable_autocomplete,
                 )
             for result in mock_result:
                 mock_process_gp.assert_not_called()
@@ -291,7 +294,9 @@ class TestGPProcessor(unittest.TestCase):
             mock_config = Config()
             mock_config.GP_CACHE_EXPIRE = 30
             expiry_in_seconds = mock_config.GP_CACHE_EXPIRE * 86400
-            mock_redis_server.setex.assert_called_with(mock_gp.id, expiry_in_seconds, mock_gp.name)
+            mock_redis_server.setex.assert_called_with(
+                mock_gp.id, expiry_in_seconds, mock_gp.name
+            )
 
     def test_process_gp_failure_on_hit(
         self,
@@ -345,7 +350,9 @@ class TestGPProcessor(unittest.TestCase):
             mock_config = Config()
             mock_config.GP_CACHE_EXPIRE = 30
             expiry_in_seconds = mock_config.GP_CACHE_EXPIRE * 86400
-            mock_redis_server.setex.assert_called_with(mock_gp.id, expiry_in_seconds, mock_gp.name)
+            mock_redis_server.setex.assert_called_with(
+                mock_gp.id, expiry_in_seconds, mock_gp.name
+            )
 
 
 if __name__ == "__main__":

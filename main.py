@@ -97,7 +97,7 @@ def process_gp(giving_partner, session, redis_engine, autocomplete_toggle=False)
     logger.info(
         "not processed as neither autocomplete check passed nor the text search API returned any valid results"  # pylint: disable=line-too-long
     )
-    expiry_in_seconds = Config.GP_CACHE_EXPIRE*86400
+    expiry_in_seconds = Config.GP_CACHE_EXPIRE * 86400
     try:
         redis_engine.setex(giving_partner.id, expiry_in_seconds, giving_partner.name)
     except RedisError as e:
