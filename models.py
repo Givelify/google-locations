@@ -21,14 +21,16 @@ class GoogleGivingPartnerLocations(Base):
     longitude = Column(Float, nullable=False)
     outlines = Column(Geometry(geometry_type="GEOMETRY", srid=4326), nullable=True)
     created_at = Column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
-    )  # pylint: disable=not-callable
+        DateTime(timezone=True),
+        server_default=func.now(),  # pylint: disable=not-callable
+        nullable=False,
+    )
     updated_at = Column(
         DateTime(timezone=True),
-        server_default=func.now(),
+        server_default=func.now(),  # pylint: disable=not-callable
         nullable=False,
-        onupdate=func.now(),
-    )  # pylint: disable=not-callable
+        onupdate=func.now(),  # pylint: disable=not-callable
+    )
 
 
 class GivingPartners(Base):
