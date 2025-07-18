@@ -36,7 +36,7 @@ jobs:
         run: black --check .
 
       - name: Check import order
-        run: isort . --check --profile black
+        run: isort . --check --profile black --settings-path .
 
       - name: Run linter
         run: pylint .
