@@ -11,5 +11,12 @@ Spin this project up in docker through the following steps:
  The optional command line args you can use are:
  1. --id <ID>: If you want to process a specific GP from donee_info table by providing their ID
  2. --enable_autocomplete: processes GPs while utilizing autocomplete API. Autocomplete check is disabled by default.
- 3. --disable_cache_check: Disables Redis cache check that checks if a GP has previosuly failed to avoid running them again. The redis cache stores the GP IDs for a month from when they first failed. cache_check is True by default
+ 3. --disable_cache_check: Disables Redis cache check that checks if a GP has previosuly failed to avoid running them again. The redis cache stores the GP IDs for a month from when they first failed (meaning they were either not found in the google API or the result was not valid). cache_check is True by default
 
+
+ Examples of ways to run:
+ 'python main.py', processes multiple GPs at once
+ 'python main.py --id 479", processes GP with ID 479
+ 'python main.py --id 479 --enable_autocomplete', processes GP with ID 479 while utilizing the autocomplete API
+ 'python main.py --enable_autocomplete' processes multiple GPs at once while utilizing the autocomplete API
+'python main.py --disable_cache_check --id 479' processes gp 479 regardless of whether it's run failed before (meaning it was either not found in the google API or the result was not valid)

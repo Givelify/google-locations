@@ -7,7 +7,8 @@ from sqlalchemy.exc import SQLAlchemyError
 from checks import autocomplete_check
 from config import Config
 from google_api_calls import text_search
-from helper import autocomplete_branch, mysql_query, parse_args, text_search_branch
+from helper import (autocomplete_branch, get_giving_partners, parse_args,
+                    text_search_branch)
 from models import get_engine, get_session
 
 logger = Config.logger
@@ -16,7 +17,7 @@ logger = Config.logger
 def main():
     """Main module"""
     try:
-        r = redis.Redis(
+        redis_engine = redis.Redis(
             host=Config.REDIS_HOST, port=Config.REDIS_HOST_PORT, db=Config.REDIS_DB
         )
         args = parse_args()
@@ -33,18 +34,17 @@ def main():
     except SystemExit:
         logger.error("parsing args failed")
         raise
-    except SQLAlchemyError as e:
-        logger.error(f"Failed to initialize database engine: {e}")  # error log this
-        raise
     except RedisError as e:
         logger.error(f"Redis Connection Error: {e}")
         raise
+    except Exception as e:
+        logger.error(f"Failed to initialize database engine: {e}")  # error log this
+        raise
 
-    query = mysql_query(args.id)
     try:
         with get_session(engine) as session:
             # log the success of creating the session
-            result = session.scalars(query).all()
+            result = get_giving_partners(args.id, session)
             if len(result) == 0:
                 if args.id is None:
                     logger.info("No Giving partners left to process")
@@ -57,25 +57,24 @@ def main():
                 logger.info(
                     f"Processing donee_id: {giving_partner.id}, name: {giving_partner.name}, address: {giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
                 )
-                if args.cache_check is True:
-                    if r.get(giving_partner.id):
-                        logger.info(
-                            f"""GP ID: {giving_partner.id} failed run before, can't process it for a month from its initial run. If you want to run it anyway, run 'python main.py --id {{ID}} --disable_cache_check'"""  # pylint: disable=line-too-long
-                        )
-                        continue
+                if args.cache_check and redis_engine.get(giving_partner.id):
+                    logger.info(
+                        f"""GP ID: {giving_partner.id} failed run before, can't process it for a month from its initial run. If you want to run it anyway, run 'python main.py --id {{ID}} --disable_cache_check'"""  # pylint: disable=line-too-long
+                    )
+                    continue
                 try:
                     process_gp(
                         giving_partner,
                         session,
-                        r,
+                        redis_engine,
                         autocomplete_toggle=args.enable_autocomplete,
                     )
                 except Exception as e:  # pylint: disable=broad-exception-caught
                     logger.error(f"Error in process_gp(): {e}")
-    except SQLAlchemyError as e:
-        logger.error(f"failed to create session: {e}")
     except RedisError as e:
         logger.error(f"Redis caching error: {e}")
+    except SQLAlchemyError as e:
+        logger.error(f"failed to create session: {e}")
     finally:
         engine.dispose()
 

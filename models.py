@@ -1,11 +1,10 @@
 # pylint: disable=too-few-public-methods
 """datetime object for defining created_at, updated_at columns"""
 
-from datetime import datetime
-
 from geoalchemy2 import Geometry
 from sqlalchemy import Column, DateTime, Float, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
+from sqlalchemy.sql import func
 
 Base = declarative_base()
 
@@ -21,8 +20,15 @@ class GoogleGivingPartnerLocations(Base):
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
     outlines = Column(Geometry(geometry_type="GEOMETRY", srid=4326), nullable=True)
-    created_at = Column(DateTime, nullable=False, default=datetime.now)
-    updated_at = Column(DateTime, nullable=False, default=datetime.now, onupdate=True)
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )  # pylint: disable=not-callable
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        nullable=False,
+        onupdate=func.now(),
+    )  # pylint: disable=not-callable
 
 
 class GivingPartners(Base):

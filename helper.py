@@ -34,7 +34,7 @@ def insert_google_gp_location(  # pylint: disable=too-many-arguments, too-many-p
             latitude=latitude,
             longitude=longitude,
         )
-        session.add(gp_info)
+        session.merge(gp_info)
         session.commit()
         logger.info(
             f"succesfully inserted google location data for gp_id: {giving_partner_id}"
@@ -54,12 +54,12 @@ def base_filter(giving_partner, active, unregistered):
     ]
 
 
-def mysql_query(specific_gp_id):
+def get_giving_partners(specific_gp_id, session):
     """Function that returns which query to use to get the GPs to process"""
     active = 1
     unregistered = 0
     if specific_gp_id is None:
-        return (
+        query = (
             select(gp)
             .join(gpl, gp.id == gpl.giving_partner_id, isouter=True)
             .where(
@@ -70,18 +70,20 @@ def mysql_query(specific_gp_id):
             )
             .limit(1)
         )
-    return select(gp).where(
-        and_(
-            gp.id == specific_gp_id,
-            *base_filter(gp, active, unregistered),
+    else:
+        query = select(gp).where(
+            and_(
+                gp.id == specific_gp_id,
+                *base_filter(gp, active, unregistered),
+            )
         )
-    )
+    return session.scalars(query).all()
 
 
 def parse_args():
     """function to parse optional giving partner id command line argument"""
     parser = argparse.ArgumentParser(
-        description="optional giving partner id and enable autocomplete check toggle"
+        description="optional giving partner id, enable autocomplete check toggle and disable cache check toggle"  # pylint: disable=line-too-long
     )
     parser.add_argument("--id", type=int)
 
@@ -103,7 +105,7 @@ def parse_args():
         return args
     except SystemExit:
         logger.error(
-            "parsing command line arguments failed: please ensure you input '--enable_autocomplete' and/or 'id {ID}' and please make sure ID is an integer"  # pylint: disable=line-too-long
+            "parsing command line arguments failed: please check your args to ensure they match the examples in documentation"  # pylint: disable=line-too-long
         )
         raise
 
