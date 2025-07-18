@@ -34,7 +34,7 @@ def insert_google_gp_location(  # pylint: disable=too-many-arguments, too-many-p
             latitude=latitude,
             longitude=longitude,
         )
-        session.merge(gp_info)
+        session.add(gp_info)
         session.commit()
         logger.info(
             f"succesfully inserted google location data for gp_id: {giving_partner_id}"
