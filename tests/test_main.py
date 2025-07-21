@@ -178,7 +178,7 @@ class TestGPProcessor(unittest.TestCase):
 
         main.process_gp(mock_gp, mock_session, autocomplete_toggle=True)
         self.assertEqual(
-            mock_session.add.call_args[0][0].address,
+            mock_session.merge.call_args[0][0].address,
             f"{mock_gp.address}, {mock_gp.city}, {mock_gp.state}, {mock_gp.country}",
         )
         mock_session.commit.assert_called_once()
@@ -228,7 +228,7 @@ class TestGPProcessor(unittest.TestCase):
             main.process_gp(mock_gp, mock_session)
             mock_text_search.assert_called_with(mock_gp)
             self.assertEqual(
-                mock_session.add.call_args[0][0].address,
+                mock_session.merge.call_args[0][0].address,
                 mock_top_result["formattedAddress"],
             )
             mock_session.commit.assert_called_once()
@@ -262,7 +262,7 @@ class TestGPProcessor(unittest.TestCase):
 
         main.process_gp(mock_gp, mock_session)
         mock_text_search.assert_called_with(mock_gp)
-        mock_session.add.assert_not_called()
+        mock_session.merge.assert_not_called()
 
     def test_process_gp_failure_on_hit(
         self,
@@ -308,7 +308,7 @@ class TestGPProcessor(unittest.TestCase):
 
             main.process_gp(mock_gp, mock_session)
             mock_text_search.assert_called_with(mock_gp)
-            mock_session.add.assert_not_called()
+            mock_session.merge.assert_not_called()
 
 
 if __name__ == "__main__":
