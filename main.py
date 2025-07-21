@@ -1,27 +1,19 @@
 """Module that connects to mysql server and performs database operations"""
 
-from sqlalchemy import and_, func, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from checks import autocomplete_check
 from config import Config
 from google_api_calls import text_search
-from helper import autocomplete_branch, parse_args, text_search_branch
-from models import GivingPartners as gp
-from models import GoogleGivingPartnerLocations as gpl
+from helper import (
+    autocomplete_branch,
+    get_giving_partners,
+    parse_args,
+    text_search_branch,
+)
 from models import get_engine, get_session
 
 logger = Config.logger
-
-
-def base_filter(giving_partner, active, unregistered):
-    "base filter to reuse in SELECT queries to retrieve GPs from donee_info DB"
-    return [
-        giving_partner.active == active,
-        giving_partner.unregistered == unregistered,
-        giving_partner.country.isnot(None),
-        func.trim(giving_partner.country) != "",
-    ]
 
 
 def main():
@@ -36,39 +28,18 @@ def main():
             db_password=Config.DB_PASSWORD,
             db_name=Config.DB_NAME,
         )
-        # log success
+        logger.info("Successfully created the MySQL Engine")
     except SystemExit:
         logger.error("parsing args failed")
         raise
-    except SQLAlchemyError as e:
+    except Exception as e:
         logger.error(f"Failed to initialize database engine: {e}")  # error log this
         raise
-    active = 1
-    unregistered = 0
 
-    if args.id is None:
-        query = (
-            select(gp)
-            .join(gpl, gp.id == gpl.giving_partner_id, isouter=True)
-            .where(
-                and_(
-                    gpl.giving_partner_id.is_(None),
-                    *base_filter(gp, active, unregistered),
-                )
-            )
-            .limit(1)
-        )
-    else:
-        query = select(gp).where(
-            and_(
-                gp.id == args.id,
-                *base_filter(gp, active, unregistered),
-            )
-        )
     try:
         with get_session(engine) as session:
-            # log the success of creating the session
-            result = session.scalars(query).all()
+            logger.info("MySQL Session succesflly created")
+            result = get_giving_partners(args.id, session)
             if len(result) == 0:
                 if args.id is None:
                     logger.info("No Giving partners left to process")
@@ -108,10 +79,13 @@ def process_gp(giving_partner, session, autocomplete_toggle=False):
         )
     text_search_results = text_search(giving_partner)
     if len(text_search_results) > 0:
-        text_search_branch(giving_partner, text_search_results, session)
-        return
+        text_search_success = text_search_branch(
+            giving_partner, text_search_results, session
+        )
+        if text_search_success:
+            return
     logger.info(
-        "not processed as neither autocomplete check passed nor the topmost result from text search does not match"  # pylint: disable=line-too-long
+        "not processed as neither autocomplete check passed nor the text search API returned any valid results"  # pylint: disable=line-too-long
     )
     return
 
