@@ -1,9 +1,9 @@
 # google_locations
 Project that retrieves google locations of GPs
 
-Spin this project up in docker through the following steps:
+To run this script locally, spin this project up in docker locally through the following steps:
 
- 1. setup environment variables: "cp example.env .env" and update the values
+ 1. setup environment variables: Run "cp example.env .env" and update the values in .env file
  2. Make sure your MySQL container is already running and connected to the same Docker network as "DOCKER_NETWORK" in the .env file if you're using an external database container
  3. build and run the services using by running the "docker compose up --build -d" command in the path/to/google-locations directory
  4. Then run the script using "docker compose exec google-locations-app python main.py {optional arguments}"
