@@ -44,7 +44,6 @@ def insert_google_gp_location(  # pylint: disable=too-many-arguments, too-many-p
         raise
 
 
-
 def base_filter():
     "base filter to reuse in SELECT queries to retrieve GPs from donee_info DB"
     return [
@@ -52,6 +51,8 @@ def base_filter():
         gp.unregistered == 0,
         gp.country.isnot(None),
         func.trim(gp.country) != "",
+    ]
+
 
 def get_giving_partners(specific_gp_id, session):
     """Function that returns which query to use to get the GPs to process"""
