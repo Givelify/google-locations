@@ -47,7 +47,7 @@ def main():
 
     try:
         with get_session(engine) as session:
-            # log the success of creating the session
+            logger.info("MySQL Session succesflly created")
             result = get_giving_partners(args.id, session)
             if len(result) == 0:
                 if args.id is None:
