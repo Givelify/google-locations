@@ -197,7 +197,7 @@ class TestGPProcessor(unittest.TestCase):
                 mock_gp, mock_session, mock_redis_server, autocomplete_toggle=True
             )
             self.assertEqual(
-                mock_session.add.call_args[0][0].address,
+                mock_session.merge.call_args[0][0].address,
                 f"{mock_gp.address}, {mock_gp.city}, {mock_gp.state}, {mock_gp.country}",
             )
             mock_session.commit.assert_called_once()
