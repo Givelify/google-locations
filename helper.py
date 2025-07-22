@@ -3,11 +3,13 @@
 import argparse
 
 from shapely.geometry import MultiPolygon, Polygon
+from sqlalchemy import and_, func, select
 from sqlalchemy.exc import SQLAlchemyError
 
 from checks import check_topmost
 from config import Config
 from google_api_calls import geocoding_api
+from models import GivingPartners as gp
 from models import GoogleGivingPartnerLocations as gpl
 
 logger = Config.logger
@@ -42,6 +44,40 @@ def insert_google_gp_location(  # pylint: disable=too-many-arguments, too-many-p
         raise
 
 
+def base_filter():
+    "base filter to reuse in SELECT queries to retrieve GPs from donee_info DB"
+    return [
+        gp.active == 1,
+        gp.unregistered == 0,
+        gp.country.isnot(None),
+        func.trim(gp.country) != "",
+    ]
+
+
+def get_giving_partners(specific_gp_id, session):
+    """Function that returns which query to use to get the GPs to process"""
+    if specific_gp_id is None:
+        query = (
+            select(gp)
+            .join(gpl, gp.id == gpl.giving_partner_id, isouter=True)
+            .where(
+                and_(
+                    gpl.giving_partner_id.is_(None),
+                    *base_filter(),
+                )
+            )
+            .limit(1)
+        )
+    else:
+        query = select(gp).where(
+            and_(
+                gp.id == specific_gp_id,
+                *base_filter(),
+            )
+        )
+    return session.scalars(query).all()
+
+
 def parse_args():
     """function to parse optional giving partner id command line argument"""
     parser = argparse.ArgumentParser(
@@ -57,12 +93,12 @@ def parse_args():
     )
     try:
         args = parser.parse_args()
+        return args
     except SystemExit:
         logger.error(
-            "parsing command line arguments failed: please ensure you input '--enable_autocomplete' and/or 'id {ID}' and please make sure ID is an integer"  # pylint: disable=line-too-long
+            "parsing command line arguments failed: please check your args to ensure they match the examples in documentation"  # pylint: disable=line-too-long
         )
         raise
-    return args
 
 
 def reverse_coordinates(coordinate_pairs):
@@ -139,9 +175,9 @@ def text_search_branch(giving_partner, text_search_results, session):
     top_result = text_search_results[0]
     if not check_topmost(top_result, giving_partner):
         logger.info(
-            f"not processed as the topmost result from text search {top_result["displayName"]["text"]} does not match gp name {giving_partner.name} with gp_id {giving_partner.id}"  # pylint: disable=line-too-long
+            f"Text search run failed as the topmost result from text search {top_result["displayName"]["text"]} does not match gp name {giving_partner.name} with gp_id {giving_partner.id}"  # pylint: disable=line-too-long
         )
-        return
+        return False
     preprocessed_outlines = None
     try:
         geocoding_result = geocoding_api(top_result["id"])
@@ -160,6 +196,7 @@ def text_search_branch(giving_partner, text_search_results, session):
             top_result["location"]["longitude"],
             session,
         )
+        return True
     except Exception as e:  # pylint: disable=broad-exception-caught
         logger.error(f"Failure in Text search logic: {e}")
         raise
