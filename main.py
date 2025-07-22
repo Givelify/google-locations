@@ -1,5 +1,7 @@
 """Module that connects to mysql server and performs database operations"""
 
+import redis
+from redis.exceptions import RedisError
 from sqlalchemy.exc import SQLAlchemyError
 
 from checks import autocomplete_check
@@ -19,6 +21,9 @@ logger = Config.logger
 def main():
     """Main module"""
     try:
+        redis_engine = redis.Redis(
+            host=Config.REDIS_HOST, port=Config.REDIS_HOST_PORT, db=Config.REDIS_DB
+        )
         args = parse_args()
 
         engine = get_engine(
@@ -29,8 +34,12 @@ def main():
             db_name=Config.DB_NAME,
         )
         logger.info("Successfully created the MySQL Engine")
+        logger.info("Successfully connected to Redis Server.")
     except SystemExit:
         logger.error("parsing args failed")
+        raise
+    except RedisError as e:
+        logger.error(f"Redis Connection Error: {e}")
         raise
     except Exception as e:
         logger.error(f"Failed to initialize database engine: {e}")  # error log this
@@ -52,21 +61,29 @@ def main():
                 logger.info(
                     f"Processing donee_id: {giving_partner.id}, name: {giving_partner.name}, address: {giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
                 )
+                if args.cache_check and redis_engine.get(giving_partner.id):
+                    logger.info(
+                        f"""GP ID: {giving_partner.id} failed run before, can't process it for a month from its initial run. If you want to run it anyway, run 'python main.py --id {{ID}} --disable_cache_check'"""  # pylint: disable=line-too-long
+                    )
+                    continue
                 try:
                     process_gp(
                         giving_partner,
                         session,
+                        redis_engine,
                         autocomplete_toggle=args.enable_autocomplete,
                     )
                 except Exception as e:  # pylint: disable=broad-exception-caught
                     logger.error(f"Error in process_gp(): {e}")
+    except RedisError as e:
+        logger.error(f"Redis caching error: {e}")
     except SQLAlchemyError as e:
         logger.error(f"failed to create session: {e}")
     finally:
         engine.dispose()
 
 
-def process_gp(giving_partner, session, autocomplete_toggle=False):
+def process_gp(giving_partner, session, redis_engine, autocomplete_toggle=False):
     """Module that processes each GP"""
     if autocomplete_toggle:
         autocomplete_result = autocomplete_check(giving_partner)
@@ -87,6 +104,11 @@ def process_gp(giving_partner, session, autocomplete_toggle=False):
     logger.info(
         "not processed as neither autocomplete check passed nor the text search API returned any valid results"  # pylint: disable=line-too-long
     )
+    expiry_in_seconds = int(Config.GP_CACHE_EXPIRE) * 86400
+    try:
+        redis_engine.setex(giving_partner.id, expiry_in_seconds, giving_partner.name)
+    except RedisError as e:
+        logger.error(f"Redis Caching error for gp_id {giving_partner.id}: {e}")
     return
 
 

@@ -7,3 +7,4 @@ sqlalchemy
 tenacity
 shapely
 geoalchemy2
+redis

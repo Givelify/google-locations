@@ -1,0 +1,34 @@
+services:
+  google-locations-app:
+    build: .
+    container_name: google-locations-app
+    volumes:
+      - .:/google-locations
+    working_dir: /google-locations
+    ports:
+      - "8000:8000"
+    environment:
+      - MYSQL_HOST=${DB_HOST}
+      - MYSQL_PORT=${DB_PORT}
+      - MYSQL_USER=${DB_USERNAME}
+      - MYSQL_PASSWORD=${DB_PASSWORD}
+      - MYSQL_DB=${DB_NAME}
+      - REDIS_HOST=redis
+      - REDIS_HOST_PORT=${REDIS_HOST_PORT}
+    depends_on:
+      - redis
+    networks:
+      - custom_net
+
+  redis:
+    image: redis:7
+    container_name: my_redis
+    ports:
+      - "${REDIS_HOST_PORT}:6379"
+    networks:
+      - custom_net
+
+networks:
+  custom_net:
+    external: true
+    name: google_locations_backend_net

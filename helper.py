@@ -81,7 +81,7 @@ def get_giving_partners(specific_gp_id, session):
 def parse_args():
     """function to parse optional giving partner id command line argument"""
     parser = argparse.ArgumentParser(
-        description="optional giving partner id and enable autocomplete check toggle"
+        description="optional giving partner id, enable autocomplete check toggle and disable cache check toggle"  # pylint: disable=line-too-long
     )
     parser.add_argument("--id", type=int)
 
@@ -90,6 +90,13 @@ def parse_args():
         action="store_true",
         help="Enable autocomplete check",
         default=False,
+    )
+    parser.add_argument(
+        "--disable_cache_check",
+        action="store_false",
+        dest="cache_check",
+        default=True,
+        help="Redis Cache check for non processed GP IDs",
     )
     try:
         args = parser.parse_args()
