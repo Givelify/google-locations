@@ -1,6 +1,6 @@
 """Module that connects to mysql server and performs database operations"""
 
-from checks import autocomplete_check, check_topmost
+from checks import autocomplete_check, text_search_similarity_check
 from config import Config
 from google_api_calls import text_search
 from helper import (
@@ -99,7 +99,7 @@ def process_gp(giving_partner, session, enable_autocomplete=False):
         )
         return
     top_text_search_result = text_search_results[0]
-    if check_topmost(giving_partner, top_text_search_result):
+    if text_search_similarity_check(giving_partner, top_text_search_result):
         process_text_search_results(session, giving_partner, top_text_search_result)
         logger.info(
             "Text search process successful for GP",

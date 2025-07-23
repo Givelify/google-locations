@@ -176,12 +176,12 @@ class TestMain(unittest.TestCase):
     @patch("main.autocomplete_check")
     @patch("main.process_autocomplete_results")
     @patch("main.text_search")
-    @patch("main.check_topmost")
+    @patch("main.text_search_similarity_check")
     @patch("main.process_text_search_results")
     def test_process_gp_autocomplete_no_results_backup(
         self,
         mock_process_text_search_results,
-        mock_check_topmost,
+        mock_text_search_similarity_check,
         mock_text_search,
         mock_process_autocomplete_results,
         mock_autocomplete_check,
@@ -199,14 +199,14 @@ class TestMain(unittest.TestCase):
             "id": "api_id_456",
         }
         mock_text_search.return_value = [mock_top_result]
-        mock_check_topmost.return_value = True
+        mock_text_search_similarity_check.return_value = True
         mock_process_text_search_results.return_value = None
 
         main.process_gp(mock_gp, mock_session, enable_autocomplete=True)
         mock_autocomplete_check.assert_called_with(mock_gp)
         mock_process_autocomplete_results.assert_not_called()
         mock_text_search.assert_called_with(mock_gp)
-        mock_check_topmost.assert_called_with(mock_gp, mock_top_result)
+        mock_text_search_similarity_check.assert_called_with(mock_gp, mock_top_result)
         mock_process_text_search_results.assert_called_with(
             mock_session, mock_gp, mock_top_result
         )
@@ -214,12 +214,12 @@ class TestMain(unittest.TestCase):
     @patch("main.autocomplete_check")
     @patch("main.process_autocomplete_results")
     @patch("main.text_search")
-    @patch("main.check_topmost")
+    @patch("main.text_search_similarity_check")
     @patch("main.process_text_search_results")
     def test_process_gp_text_search_success(
         self,
         mock_process_text_search_results,
-        mock_check_topmost,
+        mock_text_search_similarity_check,
         mock_text_search,
         mock_process_autocomplete_results,
         mock_autocomplete_check,
@@ -235,7 +235,7 @@ class TestMain(unittest.TestCase):
             "id": "api_id_456",
         }
         mock_text_search.return_value = [mock_top_result]
-        mock_check_topmost.return_value = True
+        mock_text_search_similarity_check.return_value = True
         mock_process_text_search_results.return_value = None
         mock_session = MagicMock()
 
@@ -245,7 +245,7 @@ class TestMain(unittest.TestCase):
         mock_process_autocomplete_results.assert_not_called()
 
         mock_text_search.assert_called_with(mock_gp)
-        mock_check_topmost.assert_called_with(mock_gp, mock_top_result)
+        mock_text_search_similarity_check.assert_called_with(mock_gp, mock_top_result)
         mock_process_text_search_results.assert_called_with(
             mock_session, mock_gp, mock_top_result
         )
@@ -253,12 +253,12 @@ class TestMain(unittest.TestCase):
     @patch("main.autocomplete_check")
     @patch("main.process_autocomplete_results")
     @patch("main.text_search")
-    @patch("main.check_topmost")
+    @patch("main.text_search_similarity_check")
     @patch("main.process_text_search_results")
     def test_process_gp_no_hits(
         self,
         mock_process_text_search_results,
-        mock_check_topmost,
+        mock_text_search_similarity_check,
         mock_text_search,
         mock_process_autocomplete_results,
         mock_autocomplete_check,
@@ -278,7 +278,7 @@ class TestMain(unittest.TestCase):
         mock_autocomplete_check.assert_called_with(mock_gp)
         mock_process_autocomplete_results.assert_not_called()
         mock_text_search.assert_called_with(mock_gp)
-        mock_check_topmost.assert_not_called()
+        mock_text_search_similarity_check.assert_not_called()
         mock_process_text_search_results.assert_not_called()
 
 

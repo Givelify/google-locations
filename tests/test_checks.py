@@ -5,9 +5,9 @@ from unittest.mock import patch
 
 from checks import (
     autocomplete_check,
-    check_topmost,
     fuzzy_address_check,
     normalize_address,
+    text_search_similarity_check,
 )
 from models import GivingPartners
 
@@ -16,11 +16,11 @@ class TestChecks(unittest.TestCase):
     """Unit tests for the checks module"""
 
     @patch("checks.fuzz.ratio", return_value=95)
-    def test_check_topmost(
+    def test_text_search_similarity_check(
         self,
         mock_ratio,
     ):
-        """Test the check_topmost function"""
+        """Test the text_search_similarity_check function"""
         topmost = {
             "displayName": {"text": "test GP"},
             "placeId": "place1_id",
@@ -31,7 +31,7 @@ class TestChecks(unittest.TestCase):
             id=3,
         )
 
-        result = check_topmost(donee_info_gp, topmost)
+        result = text_search_similarity_check(donee_info_gp, topmost)
         self.assertTrue(result)
         mock_ratio.assert_called_once_with("test gp", "test gp")
 

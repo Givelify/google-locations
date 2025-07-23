@@ -11,18 +11,18 @@ from google_api_calls import call_autocomplete
 logger = Config.logger
 
 
-def check_topmost(giving_partner, text_search_result):
+def text_search_similarity_check(giving_partner, text_search_result):
     """Function to compare the topmost text search API response against
     the gp information in our database to verify it is the correct gp"""
-    topmost_name = text_search_result["displayName"]["text"].lower()
+    text_search_name = text_search_result["displayName"]["text"].lower()
     gp_name = giving_partner.name.lower()
-    similarity_score = fuzz.ratio(gp_name, topmost_name)
+    similarity_score = fuzz.ratio(gp_name, text_search_name)
     logger.info(
         "Checking topmost result in text search",
         value={
             "giving_partner_id": str(giving_partner.id),
             "giving_partner_name": gp_name,
-            "topmost_name": topmost_name,
+            "text_search_name": text_search_name,
             "similarity_score": str(similarity_score),
         },
     )
