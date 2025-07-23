@@ -2,4 +2,4 @@
 ignore=venv
 
 [MESSAGES CONTROL]
-disable=broad-exception-caught
+disable=broad-exception-caught,too-many-arguments,too-many-positional-arguments
