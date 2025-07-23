@@ -30,12 +30,11 @@ def is_retryable(exception):
     stop=stop_after_attempt(3),
     retry=retry_if_exception_type(is_retryable),
 )
-def text_search(gp):
+def text_search(giving_partner):
     """Function calling text search API"""
-    gp_name = gp.name
-    gp_city = gp.city
-    gp_state = gp.state
-    input_string = gp_name + ", " + gp_city + ", " + gp_state
+    input_string = (
+        giving_partner.name + ", " + giving_partner.city + ", " + giving_partner.state
+    )
     base_url = "https://places.googleapis.com/v1/places:searchText"
 
     params = {
@@ -47,23 +46,13 @@ def text_search(gp):
     body = {
         "textQuery": input_string,
     }
-    try:
-        response = requests.post(
-            base_url, headers=params, data=json.dumps(body), timeout=30
-        )
-        response.raise_for_status()
-        data = response.json()
-        return data.get("places", [])
-    except RequestException as e:
-        if (
-            isinstance(e, requests.HTTPError)
-            and e.response is not None
-            and e.response.status_code == 429
-        ):
-            logger.error(f"429 Error while calling Google text search API: {e}")
-        else:
-            logger.error(f"Google text search API call failed: {e}")
-        raise
+
+    response = requests.post(
+        base_url, headers=params, data=json.dumps(body), timeout=30
+    )
+    response.raise_for_status()
+    data = response.json()
+    return data.get("places", [])
 
 
 @retry(
@@ -71,10 +60,10 @@ def text_search(gp):
     stop=stop_after_attempt(3),
     retry=retry_if_exception_type(is_retryable),
 )
-def call_autocomplete(gp):
+def call_autocomplete(giving_partner):
     """function calling the Autocomplete API"""
-    gp_name = gp.name
-    base_url = "https://places.googleapis.com/v1/places:autocomplete"
+    name = giving_partner.name
+    autocomplete_url = "https://places.googleapis.com/v1/places:autocomplete"
 
     params = {
         "X-Goog-Api-Key": Config.GOOGLE_API_KEY,
@@ -82,34 +71,26 @@ def call_autocomplete(gp):
     }
 
     body = {
-        "input": gp_name,
+        "input": name,
     }
 
-    if gp.latitude and gp.longitude:
+    if giving_partner.latitude and giving_partner.longitude:
         body["locationBias"] = {
             "circle": {
-                "center": {"latitude": gp.latitude, "longitude": gp.longitude},
+                "center": {
+                    "latitude": giving_partner.latitude,
+                    "longitude": giving_partner.longitude,
+                },
                 "radius": 50000.0,
             }
         }
 
-    try:
-        response = requests.post(
-            base_url, headers=params, data=json.dumps(body), timeout=30
-        )
-        response.raise_for_status()
-        data = response.json()
-        return data
-    except RequestException as e:
-        if (
-            isinstance(e, requests.HTTPError)
-            and e.response is not None
-            and e.response.status_code == 429
-        ):
-            logger.error(f"429 Error while calling Google Autocomplete API: {e}")
-        else:
-            logger.error(f"Google Autocomplete API call failed: {e}")
-        raise
+    response = requests.post(
+        autocomplete_url, headers=params, data=json.dumps(body), timeout=30
+    )
+    response.raise_for_status()
+    data = response.json()
+    return data
 
 
 @retry(

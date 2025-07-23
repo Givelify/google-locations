@@ -1,15 +1,13 @@
 """unitest module for testing"""
 
 import unittest
-from argparse import Namespace
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, call, patch
 
 import helper
 import main
-from models import GivingPartners
 
 
-class TestGPProcessor(unittest.TestCase):
+class TestMain(unittest.TestCase):
     """testing class for main.py"""
 
     def test_preprocess_building_outlines(self):
@@ -120,195 +118,168 @@ class TestGPProcessor(unittest.TestCase):
     @patch("main.get_session")
     @patch("main.process_gp")
     @patch("main.parse_args")
+    @patch("main.get_giving_partners")
     def test_main(
-        self, mock_parse_args, mock_process_gp, mock_get_session, mock_get_engine
+        self,
+        mock_get_giving_partners,
+        mock_parse_args,
+        mock_process_gp,
+        mock_get_session,
+        mock_get_engine,
     ):
-        """unit test to check whether the select query works or not"""
+        """Test main() success flow"""
         mock_engine = MagicMock()
         mock_get_engine.return_value = mock_engine
         mock_session = MagicMock()
-        mock_get_session.return_value = mock_session
-        mock_result = MagicMock()
-        mock_args = Namespace(enable_autocomplete=True)
+        mock_get_session.return_value.__enter__.return_value = mock_session
+        mock_args = MagicMock()
+        mock_args.id = None
+        mock_args.enable_autocomplete = True
         mock_parse_args.return_value = mock_args
 
-        mock_row = MagicMock()
-        mock_row.id = "1"
-        mock_result.all.return_value = [mock_row]
-        mock_session.scalars.return_value = mock_result
-        for result in mock_result:
-            mock_process_gp.assert_called_with(
-                result, mock_session, mock_args.enable_autocomplete
-            )
+        mock_gp_1 = MagicMock()
+        mock_gp_1.id = 1
+        mock_gp_2 = MagicMock()
+        mock_gp_2.id = 2
+        mock_get_giving_partners.return_value = [mock_gp_1, mock_gp_2]
 
-    @patch("main.get_session")
+        main.main()
+        mock_get_giving_partners.assert_called_with(mock_session, None)
+        mock_process_gp.assert_has_calls(
+            [
+                call(mock_gp_1, mock_session, True),
+                call(mock_gp_2, mock_session, True),
+            ]
+        )
+
     @patch("main.autocomplete_check")
-    @patch("helper.geocoding_api")
-    @patch("helper.preprocess_building_outlines")
+    @patch("main.process_autocomplete_results")
     def test_process_gp_autocomplete_success(
         self,
-        mock_preprocess_building_outlines,
-        mock_geocoding_api,
-        mock_autocomplete,
-        mock_get_session,
+        mock_process_autocomplete_results,
+        mock_autocomplete_check,
     ):
-        """testing funciton for cases with a passing autocomplete check"""
-        mock_gp = GivingPartners(
-            name="Test Church",
-            city="Testville",
-            state="TS",
-            address="123 Test St",
-            latitude=12.34,
-            longitude=56.78,
-            phone="2345756757",
-            country="USA",
-            zip="34567",
-            active=1,
-            unregistered=0,
-            id=1,
-        )
+        """Testing process_gp using autocomplete"""
+        mock_gp = MagicMock()
+        mock_gp.id = 1
 
-        mock_geocoding_api.return_value = MagicMock()
-        mock_preprocess_building_outlines.return_value = MagicMock()
-
-        # Mock a successful autocomplete check
         mock_session = MagicMock()
-        mock_get_session.return_value = mock_session
-        mock_autocomplete.return_value = "place_id_123"
+        mock_autocomplete_check.return_value = "place_id_123"
+        mock_process_autocomplete_results.return_value = True
 
-        main.process_gp(mock_gp, mock_session, autocomplete_toggle=True)
-        self.assertEqual(
-            mock_session.merge.call_args[0][0].address,
-            f"{mock_gp.address}, {mock_gp.city}, {mock_gp.state}, {mock_gp.country}",
+        main.process_gp(mock_gp, mock_session, enable_autocomplete=True)
+        mock_autocomplete_check.assert_called_with(mock_gp)
+        mock_process_autocomplete_results.assert_called_with(
+            mock_session, mock_gp, "place_id_123"
         )
-        mock_session.commit.assert_called_once()
 
-    def test_process_gp_text_search_success(self):
-        """testing function for cases with failure of autocomplete check and text search api success"""  # pylint: disable=line-too-long
-        with patch("main.get_session") as mock_get_session, patch(
-            "main.autocomplete_check"
-        ) as mock_autocomplete, patch("main.text_search") as mock_text_search, patch(
-            "checks.check_topmost"
-        ) as mock_check_topmost, patch(
-            "helper.geocoding_api"
-        ) as mock_geocoding_api, patch(
-            "helper.preprocess_building_outlines"
-        ) as mock_preprocess_building_outlines:
-            mock_gp = GivingPartners(
-                name="Faith Center",
-                city="Hope City",
-                state="HC",
-                address="456 Hope Rd",
-                latitude=34.56,
-                longitude=78.90,
-                phone="9876543210",
-                country="USA",
-                zip="45678",
-                active=1,
-                unregistered=0,
-                id=2,
-            )
-
-            mock_geocoding_api.return_value = MagicMock()
-            mock_preprocess_building_outlines.return_value = MagicMock()
-
-            mock_autocomplete.return_value = None
-            mock_top_result = {
-                "displayName": {"text": "Faith Center"},
-                "formattedAddress": "123 test Rd, Hope City, HC, USA",
-                "location": {"latitude": 55.66, "longitude": 33.45},
-                "id": "api_id_456",
-            }
-            mock_text_search.return_value = [mock_top_result]
-
-            mock_check_topmost.return_value = True
-
-            mock_session = MagicMock()
-            mock_get_session.return_value = mock_session
-            main.process_gp(mock_gp, mock_session)
-            mock_text_search.assert_called_with(mock_gp)
-            self.assertEqual(
-                mock_session.merge.call_args[0][0].address,
-                mock_top_result["formattedAddress"],
-            )
-            mock_session.commit.assert_called_once()
-
-    @patch("main.get_session")
     @patch("main.autocomplete_check")
+    @patch("main.process_autocomplete_results")
     @patch("main.text_search")
-    def test_process_gp_no_hits(
-        self, mock_text_search, mock_autocomplete, mock_get_session
+    @patch("main.check_topmost")
+    @patch("main.process_text_search_results")
+    def test_process_gp_autocomplete_no_results_backup(
+        self,
+        mock_process_text_search_results,
+        mock_check_topmost,
+        mock_text_search,
+        mock_process_autocomplete_results,
+        mock_autocomplete_check,
     ):
-        """testing funciton for cases with autcomplete check fail, and no hits for text search api call"""  # pylint: disable=line-too-long
-        mock_gp = GivingPartners(
-            name="Grace Hall",
-            city="Peaceville",
-            state="PV",
-            address="789 Peace Ave",
-            latitude=90.00,
-            longitude=45.00,
-            phone="1231231234",
-            country="USA",
-            zip="45678",
-            active=1,
-            unregistered=0,
-            id=3,
+        """Testing process_gp using autocomplete where text search backup is used"""
+        mock_gp = MagicMock()
+        mock_gp.id = 1
+
+        mock_session = MagicMock()
+        mock_autocomplete_check.return_value = None
+        mock_top_result = {
+            "displayName": {"text": "Faith Center"},
+            "formattedAddress": "123 test Rd, Hope City, HC, USA",
+            "location": {"latitude": 55.66, "longitude": 33.45},
+            "id": "api_id_456",
+        }
+        mock_text_search.return_value = [mock_top_result]
+        mock_check_topmost.return_value = True
+        mock_process_text_search_results.return_value = None
+
+        main.process_gp(mock_gp, mock_session, enable_autocomplete=True)
+        mock_autocomplete_check.assert_called_with(mock_gp)
+        mock_process_autocomplete_results.assert_not_called()
+        mock_text_search.assert_called_with(mock_gp)
+        mock_check_topmost.assert_called_with(mock_gp, mock_top_result)
+        mock_process_text_search_results.assert_called_with(
+            mock_session, mock_gp, mock_top_result
         )
 
-        mock_autocomplete.return_value = None
-        mock_text_search.return_value = []
+    @patch("main.autocomplete_check")
+    @patch("main.process_autocomplete_results")
+    @patch("main.text_search")
+    @patch("main.check_topmost")
+    @patch("main.process_text_search_results")
+    def test_process_gp_text_search_success(
+        self,
+        mock_process_text_search_results,
+        mock_check_topmost,
+        mock_text_search,
+        mock_process_autocomplete_results,
+        mock_autocomplete_check,
+    ):
+        """Testing process_gp not using autocomplete, using text search"""
+        mock_gp = MagicMock()
+        mock_gp.id = 1
+
+        mock_top_result = {
+            "displayName": {"text": "Faith Center"},
+            "formattedAddress": "123 test Rd, Hope City, HC, USA",
+            "location": {"latitude": 55.66, "longitude": 33.45},
+            "id": "api_id_456",
+        }
+        mock_text_search.return_value = [mock_top_result]
+        mock_check_topmost.return_value = True
+        mock_process_text_search_results.return_value = None
         mock_session = MagicMock()
-        mock_get_session.return_value = mock_session
 
         main.process_gp(mock_gp, mock_session)
+
+        mock_autocomplete_check.assert_not_called()
+        mock_process_autocomplete_results.assert_not_called()
+
         mock_text_search.assert_called_with(mock_gp)
-        mock_session.merge.assert_not_called()
+        mock_check_topmost.assert_called_with(mock_gp, mock_top_result)
+        mock_process_text_search_results.assert_called_with(
+            mock_session, mock_gp, mock_top_result
+        )
 
-    def test_process_gp_failure_on_hit(
+    @patch("main.autocomplete_check")
+    @patch("main.process_autocomplete_results")
+    @patch("main.text_search")
+    @patch("main.check_topmost")
+    @patch("main.process_text_search_results")
+    def test_process_gp_no_hits(
         self,
+        mock_process_text_search_results,
+        mock_check_topmost,
+        mock_text_search,
+        mock_process_autocomplete_results,
+        mock_autocomplete_check,
     ):
-        """testing function for cases of autocomplete check fail, and the topmost hit of text search api not matching gp from donee_info table"""  # pylint: disable=line-too-long
-        with patch("main.get_session") as mock_get_session, patch(
-            "main.autocomplete_check"
-        ) as mock_autocomplete, patch("main.text_search") as mock_text_search, patch(
-            "checks.check_topmost"
-        ) as mock_check_topmost, patch(
-            "helper.geocoding_api"
-        ) as mock_geocoding_api, patch(
-            "helper.preprocess_building_outlines"
-        ) as mock_preprocess_building_outlines:
-            mock_gp = GivingPartners(
-                name="Grace Hall",
-                city="Peaceville",
-                state="PV",
-                address="789 Peace Ave",
-                latitude=90.00,
-                longitude=45.00,
-                phone="1231231234",
-                country="USA",
-                zip="45678",
-                active=1,
-                unregistered=0,
-                id=3,
-            )
+        """Testing process_gp for cases where autocomplete and text search no hits"""
+        mock_gp = MagicMock()
+        mock_gp.id = 1
 
-            mock_autocomplete.return_value = None
-            mock_geocoding_api.return_value = MagicMock()
-            mock_preprocess_building_outlines.return_value = MagicMock()
-            mock_top_result = {
-                "displayName": {"text": "Grace banquet center"},
-                "formattedAddress": "123 test Rd, test City, TS, USA",
-                "location": {"latitude": 45.67, "longitude": 34.67},
-                "id": "api_id_456",
-            }
-            mock_text_search.return_value = [mock_top_result]
-            mock_session = MagicMock()
-            mock_check_topmost.return_value = False
-            mock_get_session.return_value = mock_session
+        mock_session = MagicMock()
 
-            main.process_gp(mock_gp, mock_session)
-            mock_text_search.assert_called_with(mock_gp)
-            mock_session.merge.assert_not_called()
+        mock_autocomplete_check.return_value = None
+        mock_text_search.return_value = []
+        mock_session = MagicMock()
+
+        main.process_gp(mock_gp, mock_session, enable_autocomplete=True)
+
+        mock_autocomplete_check.assert_called_with(mock_gp)
+        mock_process_autocomplete_results.assert_not_called()
+        mock_text_search.assert_called_with(mock_gp)
+        mock_check_topmost.assert_not_called()
+        mock_process_text_search_results.assert_not_called()
 
 
 if __name__ == "__main__":

@@ -6,11 +6,9 @@ from shapely.geometry import MultiPolygon, Polygon
 from sqlalchemy import and_, func, select
 from sqlalchemy.exc import SQLAlchemyError
 
-from checks import check_topmost
 from config import Config
 from google_api_calls import geocoding_api
-from models import GivingPartners as gp
-from models import GoogleGivingPartnerLocations as gpl
+from models import GivingPartners, GoogleGivingPartnerLocations
 
 logger = Config.logger
 
@@ -26,7 +24,7 @@ def insert_google_gp_location(  # pylint: disable=too-many-arguments, too-many-p
 ):
     """Handles the MySQL table insertion"""
     try:
-        gp_info = gpl(
+        gp_info = GoogleGivingPartnerLocations(
             place_id=place_id,
             giving_partner_id=giving_partner_id,
             address=address,
@@ -37,7 +35,10 @@ def insert_google_gp_location(  # pylint: disable=too-many-arguments, too-many-p
         session.merge(gp_info)
         session.commit()
         logger.info(
-            f"succesfully inserted google location data for gp_id: {giving_partner_id}"
+            "Succesfully inserted google location data for Giving Partner",
+            value={
+                "giving_partner_id": str(giving_partner_id),
+            },
         )
     except SQLAlchemyError as e:
         logger.error(f"sqlalchemy insertion error: {e}")
@@ -47,31 +48,35 @@ def insert_google_gp_location(  # pylint: disable=too-many-arguments, too-many-p
 def base_filter():
     "base filter to reuse in SELECT queries to retrieve GPs from donee_info DB"
     return [
-        gp.active == 1,
-        gp.unregistered == 0,
-        gp.country.isnot(None),
-        func.trim(gp.country) != "",
+        GivingPartners.active == 1,
+        GivingPartners.unregistered == 0,
+        GivingPartners.country.isnot(None),
+        func.trim(GivingPartners.country) != "",
     ]
 
 
-def get_giving_partners(specific_gp_id, session):
+def get_giving_partners(session, specific_gp_id=None):
     """Function that returns which query to use to get the GPs to process"""
     if specific_gp_id is None:
         query = (
-            select(gp)
-            .join(gpl, gp.id == gpl.giving_partner_id, isouter=True)
+            select(GivingPartners)
+            .join(
+                GoogleGivingPartnerLocations,
+                GivingPartners.id == GoogleGivingPartnerLocations.giving_partner_id,
+                isouter=True,
+            )
             .where(
                 and_(
-                    gpl.giving_partner_id.is_(None),
+                    GoogleGivingPartnerLocations.giving_partner_id.is_(None),
                     *base_filter(),
                 )
             )
             .limit(1)
         )
     else:
-        query = select(gp).where(
+        query = select(GivingPartners).where(
             and_(
-                gp.id == specific_gp_id,
+                GivingPartners.id == specific_gp_id,
                 *base_filter(),
             )
         )
@@ -91,14 +96,7 @@ def parse_args():
         help="Enable autocomplete check",
         default=False,
     )
-    try:
-        args = parser.parse_args()
-        return args
-    except SystemExit:
-        logger.error(
-            "parsing command line arguments failed: please check your args to ensure they match the examples in documentation"  # pylint: disable=line-too-long
-        )
-        raise
+    return parser.parse_args()
 
 
 def reverse_coordinates(coordinate_pairs):
@@ -136,7 +134,7 @@ def preprocess_building_outlines(outlines):
     return None
 
 
-def autocomplete_branch(giving_partner, session, autocomplete_result):
+def process_autocomplete_results(session, giving_partner, place_id):
     """Handles GP location retrieval using Autocomplete API logic"""
     gp_address = f"{giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
     preprocessed_outlines = None
@@ -144,7 +142,7 @@ def autocomplete_branch(giving_partner, session, autocomplete_result):
     longitude = giving_partner.longitude
     address = gp_address
     try:
-        geocoding_result = geocoding_api(autocomplete_result)
+        geocoding_result = geocoding_api(place_id)
         results = geocoding_result.get("results", [])
         if results and len(results) > 0:
             building_outlines = results[0]["buildings"][0]["building_outlines"][0][
@@ -155,8 +153,9 @@ def autocomplete_branch(giving_partner, session, autocomplete_result):
             latitude = location["lat"]
             longitude = location["lng"]
             address = results[0]["formatted_address"]
+
         insert_google_gp_location(
-            place_id=autocomplete_result,
+            place_id=place_id,
             giving_partner_id=giving_partner.id,
             address=address,
             outlines=preprocessed_outlines,
@@ -164,23 +163,24 @@ def autocomplete_branch(giving_partner, session, autocomplete_result):
             longitude=longitude,
             session=session,
         )
-    except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.error(f"Failure in Automcomplete branch: {e}")
-        raise
-
-
-def text_search_branch(giving_partner, text_search_results, session):
-    """Handles GP location retrieval using text search API"""
-    # get the topmost result from the text search assuming it is the right GP
-    top_result = text_search_results[0]
-    if not check_topmost(top_result, giving_partner):
-        logger.info(
-            f"Text search run failed as the topmost result from text search {top_result["displayName"]["text"]} does not match gp name {giving_partner.name} with gp_id {giving_partner.id}"  # pylint: disable=line-too-long
+    except Exception as e:
+        logger.error(
+            "Failure in process_autocomplete_results",
+            value={
+                "exception": str(e),
+                "giving_partner_id": str(giving_partner.id),
+            },
         )
         return False
+
+    return True
+
+
+def process_text_search_results(session, giving_partner, text_search_result):
+    """Handles GP location retrieval using text search API"""
     preprocessed_outlines = None
     try:
-        geocoding_result = geocoding_api(top_result["id"])
+        geocoding_result = geocoding_api(text_search_result["id"])
         results = geocoding_result.get("results", [])
         if results and len(results) > 0:
             building_outlines = results[0]["buildings"][0]["building_outlines"][0][
@@ -188,15 +188,14 @@ def text_search_branch(giving_partner, text_search_results, session):
             ]
             preprocessed_outlines = preprocess_building_outlines(building_outlines)
         insert_google_gp_location(
-            top_result["id"],
+            text_search_result["id"],
             giving_partner.id,
-            top_result["formattedAddress"],
+            text_search_result["formattedAddress"],
             preprocessed_outlines,
-            top_result["location"]["latitude"],
-            top_result["location"]["longitude"],
+            text_search_result["location"]["latitude"],
+            text_search_result["location"]["longitude"],
             session,
         )
-        return True
-    except Exception as e:  # pylint: disable=broad-exception-caught
+    except Exception as e:
         logger.error(f"Failure in Text search logic: {e}")
         raise

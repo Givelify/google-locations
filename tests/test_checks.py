@@ -16,7 +16,10 @@ class TestChecks(unittest.TestCase):
     """Unit tests for the checks module"""
 
     @patch("checks.fuzz.ratio", return_value=95)
-    def test_check_topmost(self, mock_ratio):
+    def test_check_topmost(
+        self,
+        mock_ratio,
+    ):
         """Test the check_topmost function"""
         topmost = {
             "displayName": {"text": "test GP"},
@@ -25,19 +28,10 @@ class TestChecks(unittest.TestCase):
         }
         donee_info_gp = GivingPartners(
             name="test gp",
-            city="Peaceville",
-            state="PV",
-            address="789 Peace Ave",
-            latitude=90.00,
-            longitude=45.00,
-            phone="1231231234",
-            country="USA",
-            zip="45678",
-            active=1,
-            unregistered=0,
             id=3,
         )
-        result = check_topmost(topmost, donee_info_gp)
+
+        result = check_topmost(donee_info_gp, topmost)
         self.assertTrue(result)
         mock_ratio.assert_called_once_with("test gp", "test gp")
 
@@ -97,11 +91,14 @@ class TestChecks(unittest.TestCase):
             normalize_address("630 W 28th St, IN, America")
 
     @patch("checks.normalize_address")
-    @patch("rapidfuzz.fuzz.ratio")
-    def test_fuzzy_address_check(self, mock_fuzz_ratio, mock_normalize_address):
-        """Test the fuzzy_address_check function"""
+    @patch("checks.fuzz.ratio")
+    def test_fuzzy_address_check(
+        self,
+        mock_fuzz_ratio,
+        mock_normalize_address,
+    ):
+        """Test fuzzy_address_check"""
         mock_normalize_address.side_effect = [
-            Exception,
             {
                 "street": "123 M St",
                 "country": "USA",
@@ -116,12 +113,25 @@ class TestChecks(unittest.TestCase):
             },
         ]
         mock_fuzz_ratio.side_effect = [90, 100, 100, 100]
+        gp_address = "123 Main Street, Springfield, Illinois, USA"
+        api_address = "123 Main St, Springfield, Illinois, USA"
+        result = fuzzy_address_check(api_address, gp_address)
+        self.assertEqual(result, 95)
+
+    @patch("checks.normalize_address")
+    @patch("checks.fuzz.ratio")
+    def test_fuzzy_address_check_exception(
+        self,
+        mock_fuzz_ratio,
+        mock_normalize_address,
+    ):
+        """Test fuzzy_address_check exception"""
+        mock_normalize_address.side_effect = Exception
         api_address1 = "123 M St, Springfield, USA"
         gp_address1 = "123 Main Street, Springfield, Illinois, USA"
         with self.assertRaises(Exception):
             fuzzy_address_check(api_address1, gp_address1)
-        api_address2 = "123 Main St, Springfield, Illinois, USA"
-        self.assertEqual(fuzzy_address_check(api_address2, gp_address1), 95)
+        mock_fuzz_ratio.assert_not_called()
 
     @patch("checks.fuzzy_address_check")
     @patch(
@@ -159,7 +169,9 @@ class TestChecks(unittest.TestCase):
         self, mock_call_autocomplete, mock_fuzzy_address_check
     ):  # pylint: disable=unused-argument
         """Test the autocomplete_check function success"""
-        donee_info_gp = GivingPartners(
+        mock_fuzzy_address_check.side_effect = [92, 60, 60]
+
+        giving_partner = GivingPartners(
             name="Test GP",
             city="Glenwood",
             state="IL",
@@ -173,11 +185,11 @@ class TestChecks(unittest.TestCase):
             unregistered=0,
             id=3,
         )
-        mock_fuzzy_address_check.side_effect = [82, 60, 60]
-        result = autocomplete_check(donee_info_gp)
+        result = autocomplete_check(giving_partner)
+        mock_call_autocomplete.assert_called_with(giving_partner)
         self.assertEqual(result, "place1_id")
 
-        donee_info_gp2 = GivingPartners(
+        giving_partner_2 = GivingPartners(
             name="Test GP",
             city="Glenwood",
             state="IL",
@@ -191,10 +203,11 @@ class TestChecks(unittest.TestCase):
             unregistered=0,
             id=3,
         )
-        result2 = autocomplete_check(donee_info_gp2)
+        result2 = autocomplete_check(giving_partner_2)
+        mock_call_autocomplete.assert_called_with(giving_partner_2)
         self.assertIsNone(result2)
 
-        donee_info_gp3 = GivingPartners(
+        giving_partner_3 = GivingPartners(
             name="Test GP",
             city="",
             state="IL",
@@ -208,7 +221,8 @@ class TestChecks(unittest.TestCase):
             unregistered=0,
             id=3,
         )
-        result3 = autocomplete_check(donee_info_gp3)
+        result3 = autocomplete_check(giving_partner_3)
+        mock_call_autocomplete.assert_called_with(giving_partner_3)
         self.assertIsNone(result3)
 
 
