@@ -11,25 +11,22 @@ from google_api_calls import call_autocomplete
 logger = Config.logger
 
 
-def check_topmost(topmost, donee_info_gp):
+def text_search_similarity_check(giving_partner, text_search_result):
     """Function to compare the topmost text search API response against
-    the gp information in our database to verify it is the correct gp"""  # pylint: disable=line-too-long
-    topmost_name = topmost["displayName"]["text"].lower()
-    logger.info(f"Checking topmost result {topmost_name} for: {donee_info_gp.name}")
-    gp_name = donee_info_gp.name.lower()
-    similarity_score = fuzz.ratio(gp_name, topmost_name)
-    # for now just go with the assumption that the topmost one is good
-    # if the simlarity score between its name and the giving partner name
-    # in our database is more than 90
-    if similarity_score < Config.TOPMOST_NAME_MATCHING_THRESHOLD:
-        logger.info(
-            f"Topmost name {topmost_name} does not match GP name {gp_name} as similarity score is {similarity_score}, skipping."
-        )
-        return False
+    the gp information in our database to verify it is the correct gp"""
+    text_search_name = text_search_result["displayName"]["text"].lower()
+    gp_name = giving_partner.name.lower()
+    similarity_score = fuzz.ratio(gp_name, text_search_name)
     logger.info(
-        f"topmost result {topmost["displayName"]["text"]} with address {topmost["formattedAddress"]} matched giving partner name {donee_info_gp.name} with similarity score of {similarity_score}"
+        "Checking topmost result in text search",
+        value={
+            "giving_partner_id": str(giving_partner.id),
+            "giving_partner_name": gp_name,
+            "text_search_name": text_search_name,
+            "similarity_score": str(similarity_score),
+        },
     )
-    return True
+    return similarity_score > Config.TEXT_SEARCH_MATCHING_THRESHOLD
 
 
 def normalize_address(address):
@@ -38,10 +35,12 @@ def normalize_address(address):
     into street, city, state and country components so that different
     weights can be used for each part of the address during comparision
     """
+    original_address = address
     country_replacements = {
         r"\b(?:United States of America|United States|America|U\.?S\.?A\.?|USA|US|U\.?S\.?)\b\.?": "USA",  # pylint: disable=line-too-long
         r"\b(BHS|Bahamas)": "Bahamas",
     }
+
     for pattern, replacement in country_replacements.items():
         address = re.sub(pattern, replacement, address, flags=re.IGNORECASE)
     address = address.lower()
@@ -53,8 +52,7 @@ def normalize_address(address):
         parsed_address["state"] = address_parts[-2]
         parsed_address["city"] = address_parts[-3]
     else:
-        logger.error(f"{address} not complete error")
-        raise ValueError(f"address {address} not complete error")
+        raise ValueError(f"Incomplete address: {original_address}")
     return parsed_address
 
 
@@ -65,9 +63,7 @@ def fuzzy_address_check(api_address, gp_address):
         preprocessed_api_address = normalize_address(api_address)
         preprocessed_gp_address = normalize_address(gp_address)
     except ValueError as e:
-        raise ValueError(
-            f"api_address: {api_address} or gp_address: {gp_address} error {e}"
-        ) from e
+        raise ValueError(f"Error normalizing address {e}") from e
 
     # weights for different components of the address, we want to place more weight on street comparision pylint: disable=line-too-long
     street_weight = 0.5
@@ -98,7 +94,7 @@ def fuzzy_address_check(api_address, gp_address):
     return total_score
 
 
-def autocomplete_check(donee_info_gp):
+def autocomplete_check(giving_partner):
     """Function that calls the autocomplete api and then calls fuzzy check on each returned address
     against the gp address in our database to see if they match. If one of the hits match,
     it returns True"""
@@ -106,19 +102,29 @@ def autocomplete_check(donee_info_gp):
         filter(
             None,
             [
-                donee_info_gp.address,
-                donee_info_gp.city,
-                donee_info_gp.state,
-                donee_info_gp.country,
+                giving_partner.address,
+                giving_partner.city,
+                giving_partner.state,
+                giving_partner.country,
             ],
         )
     )
-    logger.info(f"Autocomplete check for: {donee_info_gp.name}, address: {gp_address}")
     try:
-        autocomplete_results = call_autocomplete(donee_info_gp)
-    except Exception as e:  # pylint: disable=broad-exception-caught
-        logger.error(f"Error calling autocomplete API: {e}")  # error log this
+        logger.info(
+            "Running Autocomplete check",
+            value={"giving_partner_id": str(giving_partner.id)},
+        )
+        autocomplete_results = call_autocomplete(giving_partner)
+    except Exception as e:
+        logger.error(
+            "Google Autocomplete API call failed",
+            value={
+                "exception": str(e),
+                "giving_partner_id": str(giving_partner.id),
+            },
+        )
         return None
+
     if len(autocomplete_results) > 0:
         for suggestion in autocomplete_results.get("suggestions", []):
             autocomplete_address = (
@@ -132,15 +138,32 @@ def autocomplete_check(donee_info_gp):
                     similarity_score = fuzzy_address_check(
                         autocomplete_address, gp_address
                     )
-                except ValueError as e:  # pylint: disable=unused-variable
-                    logger.error(f"skipping autocomplete check because of error: {e}")
+                except ValueError as e:
+                    logger.warn(
+                        "Skipping suggestion due to fuzzy address check error",
+                        value={
+                            "exception": str(e),
+                            "giving_partner_id": str(giving_partner.id),
+                            "giving_partner_address": gp_address,
+                            "google_address": autocomplete_address,
+                        },
+                    )
                     continue
                 logger.info(
-                    f"auto address: {autocomplete_address}, donee_info address: {gp_address}, sim_score: {similarity_score}"  # pylint: disable=line-too-long
+                    "Autocomplete fuzzy check results",
+                    value={
+                        "giving_partner_id": str(giving_partner.id),
+                        "autocomplete_address": autocomplete_address,
+                        "giving_partner_address": gp_address,
+                        "similarity_score": str(similarity_score),
+                    },
                 )
-                if similarity_score > Config.AUTOCOMPLETE_ADDRESS_MATCHING_THRESHOLD:
+                if similarity_score > Config.AUTOCOMPLETE_MATCHING_THRESHOLD:
                     return suggestion.get("placePrediction", {}).get("placeId", None)
     logger.info(
-        f"Autocomplete check FAILED for: {donee_info_gp.name}, address: {gp_address}"
+        "Autocomplete check unable to return any viable results",
+        value={
+            "giving_partner_id": str(giving_partner.id),
+        },
     )
-    return None  # log this stating autocomplete check failed for gp
+    return None

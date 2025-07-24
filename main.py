@@ -1,15 +1,13 @@
 """Module that connects to mysql server and performs database operations"""
 
-from sqlalchemy.exc import SQLAlchemyError
-
-from checks import autocomplete_check
+from checks import autocomplete_check, text_search_similarity_check
 from config import Config
 from google_api_calls import text_search
 from helper import (
-    autocomplete_branch,
     get_giving_partners,
     parse_args,
-    text_search_branch,
+    process_autocomplete_results,
+    process_text_search_results,
 )
 from models import get_engine, get_session
 
@@ -20,7 +18,6 @@ def main():
     """Main module"""
     try:
         args = parse_args()
-
         engine = get_engine(
             db_host=Config.DB_HOST,
             db_port=Config.DB_PORT,
@@ -28,65 +25,95 @@ def main():
             db_password=Config.DB_PASSWORD,
             db_name=Config.DB_NAME,
         )
-        logger.info("Successfully created the MySQL Engine")
-    except SystemExit:
-        logger.error("parsing args failed")
+    except SystemExit as e:
+        logger.error(
+            "Parsing command-line arguments failed.", value={"exception": str(e)}
+        )
         raise
     except Exception as e:
-        logger.error(f"Failed to initialize database engine: {e}")  # error log this
+        logger.error(
+            "Failed to initialize database engine.", value={"exception": str(e)}
+        )
         raise
 
     try:
         with get_session(engine) as session:
-            logger.info("MySQL Session succesflly created")
-            result = get_giving_partners(args.id, session)
+            result = get_giving_partners(session, args.id)
             if len(result) == 0:
-                if args.id is None:
-                    logger.info("No Giving partners left to process")
-                    return
                 logger.info(
-                    f"No active and registered GP exists with the provided id: {args.id} in the donee_info / giving patners table"  # pylint: disable=line-too-long
+                    "No Giving Partner(s) to process",
+                    value={"giving_partner_id": str(args.id)},
                 )
                 return
             for giving_partner in result:
-                logger.info(
-                    f"Processing donee_id: {giving_partner.id}, name: {giving_partner.name}, address: {giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
-                )
                 try:
                     process_gp(
                         giving_partner,
                         session,
-                        autocomplete_toggle=args.enable_autocomplete,
+                        args.enable_autocomplete,
                     )
-                except Exception as e:  # pylint: disable=broad-exception-caught
-                    logger.error(f"Error in process_gp(): {e}")
-    except SQLAlchemyError as e:
-        logger.error(f"failed to create session: {e}")
+                except Exception as e:
+                    logger.error(
+                        "Error processing giving partner",
+                        value={
+                            "exception": str(e),
+                            "giving_partner_id": str(giving_partner.id),
+                        },
+                    )
+    except Exception as e:
+        logger.error("Failed to update with Google location data", value=str(e))
     finally:
         engine.dispose()
 
 
-def process_gp(giving_partner, session, autocomplete_toggle=False):
+def process_gp(giving_partner, session, enable_autocomplete=False):
     """Module that processes each GP"""
-    if autocomplete_toggle:
-        autocomplete_result = autocomplete_check(giving_partner)
-        if autocomplete_result:
-            autocomplete_branch(giving_partner, session, autocomplete_result)
+    logger.info(
+        "Processing Giving Partner",
+        value={
+            "giving_partner_id": str(giving_partner.id),
+        },
+    )
+
+    # Autocomplete checks if Google has matching location details.
+    # If so, we skip the more expensive text search call.
+    if enable_autocomplete:
+        place_id = autocomplete_check(giving_partner)
+        if place_id and process_autocomplete_results(session, giving_partner, place_id):
+            logger.info(
+                "Autocomplete process successful for GP",
+                value={
+                    "giving_partner_id": str(giving_partner.id),
+                    "status": "success",
+                },
+            )
             return
+
+    text_search_results = text_search(giving_partner)
+    if not len(text_search_results) > 0:
+        logger.info(
+            "No text search results for GP",
+            value={
+                "giving_partner_id": str(giving_partner.id),
+            },
+        )
+        return
+    top_text_search_result = text_search_results[0]
+    if text_search_similarity_check(giving_partner, top_text_search_result):
+        process_text_search_results(session, giving_partner, top_text_search_result)
+        logger.info(
+            "Text search process successful for GP",
+            value={"giving_partner_id": str(giving_partner.id), "status": "success"},
+        )
     else:
         logger.info(
-            "skipping autocomplete check as autocomplete was not toggled on using 'enable_autocomplete'"  # pylint: disable=line-too-long
+            "Top most text search result is not viable for GP",
+            value={
+                "giving_partner_id": str(giving_partner.id),
+                "top_text_search_result": top_text_search_result,
+            },
         )
-    text_search_results = text_search(giving_partner)
-    if len(text_search_results) > 0:
-        text_search_success = text_search_branch(
-            giving_partner, text_search_results, session
-        )
-        if text_search_success:
-            return
-    logger.info(
-        "not processed as neither autocomplete check passed nor the text search API returned any valid results"  # pylint: disable=line-too-long
-    )
+
     return
 
 
