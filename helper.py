@@ -153,10 +153,11 @@ def process_autocomplete_results(session, giving_partner, place_id):
             latitude = location["lat"]
             longitude = location["lng"]
             address = results[0]["formatted_address"]
-    except Exception:
-        logger.info(
+    except Exception as e:
+        logger.error(
             "Building outlines not found for GP",
             value={
+                "exception": str(e),
                 "giving_partner_id": str(giving_partner.id),
             },
         )
@@ -194,10 +195,11 @@ def process_text_search_results(session, giving_partner, text_search_result):
                 "display_polygon"
             ]
             preprocessed_outlines = preprocess_building_outlines(building_outlines)
-    except Exception:
-        logger.info(
+    except Exception as e:
+        logger.error(
             "Building outlines not found for GP",
             value={
+                "exception": str(e),
                 "giving_partner_id": str(giving_partner.id),
             },
         )
