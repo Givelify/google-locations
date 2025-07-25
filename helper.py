@@ -173,7 +173,7 @@ def process_autocomplete_results(session, giving_partner, place_id):
         )
     except Exception as e:
         logger.error(
-            "Failure in inserting google location data in database for GP",
+            "Failure in process_autocomplete_results",
             value={
                 "exception": str(e),
                 "giving_partner_id": str(giving_partner.id),
@@ -215,7 +215,7 @@ def process_text_search_results(session, giving_partner, text_search_result):
         )
     except Exception as e:
         logger.error(
-            "Failure in inserting google location data in database for GP",
+            "Failure in process_text_search_results",
             value={
                 "exception": str(e),
                 "giving_partner_id": str(giving_partner.id),
