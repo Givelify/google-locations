@@ -155,11 +155,11 @@ def process_autocomplete_results(session, giving_partner, place_id):
             address = results[0]["formatted_address"]
     except Exception:
         logger.info(
-                "Building outlines not found for GP",
-                value={
-                    "giving_partner_id": str(giving_partner.id),
-                }
-            )
+            "Building outlines not found for GP",
+            value={
+                "giving_partner_id": str(giving_partner.id),
+            },
+        )
     try:
         insert_google_gp_location(
             place_id=place_id,
@@ -196,11 +196,11 @@ def process_text_search_results(session, giving_partner, text_search_result):
             preprocessed_outlines = preprocess_building_outlines(building_outlines)
     except Exception:
         logger.info(
-                "Building outlines not found for GP",
-                value={
-                    "giving_partner_id": str(giving_partner.id),
-                }
-            )
+            "Building outlines not found for GP",
+            value={
+                "giving_partner_id": str(giving_partner.id),
+            },
+        )
     try:
         insert_google_gp_location(
             text_search_result["id"],
