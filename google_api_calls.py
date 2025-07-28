@@ -33,7 +33,13 @@ def is_retryable(exception):
 def text_search(giving_partner):
     """Function calling text search API"""
     input_string = (
-        giving_partner.name + ", " + giving_partner.city + ", " + giving_partner.state
+        giving_partner.name
+        + ", "
+        + giving_partner.city
+        + ", "
+        + giving_partner.state
+        + ", "
+        + giving_partner.country
     )
     base_url = "https://places.googleapis.com/v1/places:searchText"
 
