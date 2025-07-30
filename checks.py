@@ -56,7 +56,24 @@ def normalize_address(address):
     return parsed_address
 
 
-def autocomplete_fuzzy_check(gp_name, api_name, gp_address, api_address):
+def autocomplete_name_fuzzy_check(gp_id, gp_name, api_name):
+    """Function that compares the name returned by autocomplete API
+    with gp data in our database"""
+    gp_name = gp_name.lower()
+    name_score = fuzz.ratio(gp_name, api_name)
+    logger.info(
+        "Autocomplete name fuzzy check results",
+        value={
+            "giving_partner_id": str(gp_id),
+            "giving_partner_name": gp_name,
+            "api_name": api_name,
+            "name_score": str(name_score),
+        },
+    )
+    return name_score
+
+
+def autocomplete_address_fuzzy_check(gp_id, gp_address, api_address):
     """Function that compares the address and name returned by autocomplete API
     with gp data in our database"""
     try:
@@ -88,14 +105,20 @@ def autocomplete_fuzzy_check(gp_name, api_name, gp_address, api_address):
     state_score = fuzz.ratio(api_state, gp_state) * state_weight
     country_score = fuzz.ratio(api_country, gp_country) * country_weight
 
-    gp_name = gp_name.lower()
-    name_score = fuzz.ratio(gp_name, api_name)
-
     # Combine the weighted scores
     address_score = street_score + city_score + state_score + country_score
-    total_score = (name_score + address_score) / 2
 
-    return total_score
+    logger.info(
+        "Autocomplete address fuzzy check results",
+        value={
+            "giving_partner_id": str(gp_id),
+            "giving_partner_address": gp_address,
+            "api_address": api_address,
+            "address_score": str(address_score),
+        },
+    )
+
+    return address_score
 
 
 def autocomplete_check(giving_partner):
@@ -143,36 +166,39 @@ def autocomplete_check(giving_partner):
                 .get("mainText", {})
                 .get("text", "")
             )
-            if autocomplete_address and autocomplete_name:
-                try:
-                    similarity_score = autocomplete_fuzzy_check(
-                        giving_partner.name,
-                        autocomplete_name,
-                        gp_address,
-                        autocomplete_address,
-                    )
-                except Exception:
-                    logger.warn(
-                        "Skipping suggestion due to autocomplete fuzzy check error",
-                        value={
-                            "giving_partner_id": str(giving_partner.id),
-                        },
-                        exc_info=True,
-                    )
+            if not (autocomplete_address and autocomplete_name):
+                continue
+
+            try:
+                name_score = autocomplete_name_fuzzy_check(
+                    giving_partner.id,
+                    giving_partner.name,
+                    autocomplete_name,
+                )
+
+                if name_score <= Config.AUTOCOMPLETE_MATCHING_THRESHOLD:
                     continue
-                logger.info(
-                    "Autocomplete fuzzy check results",
+
+                address_score = autocomplete_address_fuzzy_check(
+                    giving_partner.id,
+                    gp_address,
+                    autocomplete_address,
+                )
+
+                if address_score <= Config.AUTOCOMPLETE_MATCHING_THRESHOLD:
+                    continue
+
+                return suggestion.get("placePrediction", {}).get("placeId", None)
+
+            except Exception:
+                logger.warn(
+                    "Skipping suggestion due to autocomplete fuzzy check error",
                     value={
                         "giving_partner_id": str(giving_partner.id),
-                        "giving_partner_name": giving_partner.name,
-                        "autocomplete_name": autocomplete_name,
-                        "giving_partner_address": gp_address,
-                        "autocomplete_address": autocomplete_address,
-                        "similarity_score": str(similarity_score),
                     },
+                    exc_info=True,
                 )
-                if similarity_score > Config.AUTOCOMPLETE_MATCHING_THRESHOLD:
-                    return suggestion.get("placePrediction", {}).get("placeId", None)
+                continue
     logger.info(
         "Autocomplete check unable to return any viable results",
         value={

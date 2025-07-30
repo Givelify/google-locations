@@ -4,8 +4,9 @@ import unittest
 from unittest.mock import patch
 
 from checks import (
+    autocomplete_address_fuzzy_check,
     autocomplete_check,
-    autocomplete_fuzzy_check,
+    autocomplete_name_fuzzy_check,
     normalize_address,
     text_search_similarity_check,
 )
@@ -90,14 +91,26 @@ class TestChecks(unittest.TestCase):
         with self.assertRaises(Exception):
             normalize_address("630 W 28th St, IN, America")
 
+    @patch("checks.fuzz.ratio")
+    def test_autocomplete_name_fuzzy_check(
+        self,
+        mock_fuzz_ratio,
+    ):
+        """Test autocomplete_name_fuzzy_check"""
+        mock_fuzz_ratio.return_value = 95
+        gp_name = "GP Name"
+        api_name = "GP Name"
+        result = autocomplete_name_fuzzy_check(1, gp_name, api_name)
+        self.assertEqual(result, 95)
+
     @patch("checks.normalize_address")
     @patch("checks.fuzz.ratio")
-    def test_autocomplete_fuzzy_check(
+    def test_autocomplete_address_fuzzy_check(
         self,
         mock_fuzz_ratio,
         mock_normalize_address,
     ):
-        """Test fuzzy_address_check"""
+        """Test autocomplete_address_fuzzy_check"""
         mock_normalize_address.side_effect = [
             {
                 "street": "123 M St",
@@ -112,32 +125,29 @@ class TestChecks(unittest.TestCase):
                 "city": "Springfield",
             },
         ]
-        mock_fuzz_ratio.side_effect = [90, 90, 90, 90, 100]
-        gp_name = "GP Name"
-        api_name = "GP Name"
+        mock_fuzz_ratio.side_effect = [90, 100, 100, 100]
         gp_address = "123 Main Street, Springfield, Illinois, USA"
         api_address = "123 Main St, Springfield, Illinois, USA"
-        result = autocomplete_fuzzy_check(gp_name, api_name, gp_address, api_address)
+        result = autocomplete_address_fuzzy_check(1, gp_address, api_address)
         self.assertEqual(result, 95)
 
     @patch("checks.normalize_address")
     @patch("checks.fuzz.ratio")
-    def test_autocomplete_fuzzy_check_exception(
+    def test_autocomplete_address_fuzzy_check_exception(
         self,
         mock_fuzz_ratio,
         mock_normalize_address,
     ):
-        """Test fuzzy_address_check exception"""
+        """Test autocomplete_address_fuzzy_check exception"""
         mock_normalize_address.side_effect = Exception
-        gp_name = "GP Name"
-        api_name = "GP Name"
         api_address1 = "123 M St, Springfield, USA"
         gp_address1 = "123 Main Street, Springfield, Illinois, USA"
         with self.assertRaises(Exception):
-            autocomplete_fuzzy_check(gp_name, api_name, gp_address1, api_address1)
+            autocomplete_address_fuzzy_check(1, gp_address1, api_address1)
         mock_fuzz_ratio.assert_not_called()
 
-    @patch("checks.autocomplete_fuzzy_check")
+    @patch("checks.autocomplete_address_fuzzy_check")
+    @patch("checks.autocomplete_name_fuzzy_check")
     @patch(
         "checks.call_autocomplete",
         return_value={
@@ -170,10 +180,14 @@ class TestChecks(unittest.TestCase):
         },
     )
     def test_autocomplete_check_success(
-        self, mock_call_autocomplete, mock_autocomplete_fuzzy_check
+        self,
+        mock_call_autocomplete,
+        mock_autocomplete_address_fuzzy_check,
+        mock_autocomplete_name_fuzzy_check,
     ):  # pylint: disable=unused-argument
         """Test the autocomplete_check function success"""
-        mock_autocomplete_fuzzy_check.side_effect = [92, 60, 60]
+        mock_autocomplete_address_fuzzy_check.side_effect = [92, 60, 60]
+        mock_autocomplete_name_fuzzy_check.side_effect = [92, 60, 60]
 
         giving_partner = GivingPartners(
             name="Test GP",
