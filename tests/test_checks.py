@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from checks import (
     autocomplete_check,
-    fuzzy_address_check,
+    autocomplete_fuzzy_check,
     normalize_address,
     text_search_similarity_check,
 )
@@ -92,7 +92,7 @@ class TestChecks(unittest.TestCase):
 
     @patch("checks.normalize_address")
     @patch("checks.fuzz.ratio")
-    def test_fuzzy_address_check(
+    def test_autocomplete_fuzzy_check(
         self,
         mock_fuzz_ratio,
         mock_normalize_address,
@@ -112,28 +112,32 @@ class TestChecks(unittest.TestCase):
                 "city": "Springfield",
             },
         ]
-        mock_fuzz_ratio.side_effect = [90, 100, 100, 100]
+        mock_fuzz_ratio.side_effect = [90, 90, 90, 90, 100]
+        gp_name = "GP Name"
+        api_name = "GP Name"
         gp_address = "123 Main Street, Springfield, Illinois, USA"
         api_address = "123 Main St, Springfield, Illinois, USA"
-        result = fuzzy_address_check(api_address, gp_address)
+        result = autocomplete_fuzzy_check(gp_name, api_name, gp_address, api_address)
         self.assertEqual(result, 95)
 
     @patch("checks.normalize_address")
     @patch("checks.fuzz.ratio")
-    def test_fuzzy_address_check_exception(
+    def test_autocomplete_fuzzy_check_exception(
         self,
         mock_fuzz_ratio,
         mock_normalize_address,
     ):
         """Test fuzzy_address_check exception"""
         mock_normalize_address.side_effect = Exception
+        gp_name = "GP Name"
+        api_name = "GP Name"
         api_address1 = "123 M St, Springfield, USA"
         gp_address1 = "123 Main Street, Springfield, Illinois, USA"
         with self.assertRaises(Exception):
-            fuzzy_address_check(api_address1, gp_address1)
+            autocomplete_fuzzy_check(gp_name, api_name, gp_address1, api_address1)
         mock_fuzz_ratio.assert_not_called()
 
-    @patch("checks.fuzzy_address_check")
+    @patch("checks.autocomplete_fuzzy_check")
     @patch(
         "checks.call_autocomplete",
         return_value={
@@ -166,10 +170,10 @@ class TestChecks(unittest.TestCase):
         },
     )
     def test_autocomplete_check_success(
-        self, mock_call_autocomplete, mock_fuzzy_address_check
+        self, mock_call_autocomplete, mock_autocomplete_fuzzy_check
     ):  # pylint: disable=unused-argument
         """Test the autocomplete_check function success"""
-        mock_fuzzy_address_check.side_effect = [92, 60, 60]
+        mock_autocomplete_fuzzy_check.side_effect = [92, 60, 60]
 
         giving_partner = GivingPartners(
             name="Test GP",

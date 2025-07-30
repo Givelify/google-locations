@@ -56,9 +56,9 @@ def normalize_address(address):
     return parsed_address
 
 
-def fuzzy_address_check(api_address, gp_address):
-    """Function that compares the address returned by autocomplete API
-    and the gp address in our database"""
+def autocomplete_fuzzy_check(gp_name, api_name, gp_address, api_address):
+    """Function that compares the address and name returned by autocomplete API
+    with gp data in our database"""
     try:
         preprocessed_api_address = normalize_address(api_address)
         preprocessed_gp_address = normalize_address(gp_address)
@@ -88,8 +88,12 @@ def fuzzy_address_check(api_address, gp_address):
     state_score = fuzz.ratio(api_state, gp_state) * state_weight
     country_score = fuzz.ratio(api_country, gp_country) * country_weight
 
+    gp_name = gp_name.lower()
+    name_score = fuzz.ratio(gp_name, api_name)
+
     # Combine the weighted scores
-    total_score = street_score + city_score + state_score + country_score
+    address_score = street_score + city_score + state_score + country_score
+    total_score = (name_score + address_score) / 2
 
     return total_score
 
@@ -115,13 +119,13 @@ def autocomplete_check(giving_partner):
             value={"giving_partner_id": str(giving_partner.id)},
         )
         autocomplete_results = call_autocomplete(giving_partner)
-    except Exception as e:
+    except Exception:
         logger.error(
             "Google Autocomplete API call failed",
             value={
-                "exception": str(e),
                 "giving_partner_id": str(giving_partner.id),
             },
+            exc_info=True,
         )
         return None
 
@@ -133,28 +137,37 @@ def autocomplete_check(giving_partner):
                 .get("secondaryText", {})
                 .get("text", "")
             )
-            if autocomplete_address:
+            autocomplete_name = (
+                suggestion.get("placePrediction", {})
+                .get("structuredFormat", {})
+                .get("mainText", {})
+                .get("text", "")
+            )
+            if autocomplete_address and autocomplete_name:
                 try:
-                    similarity_score = fuzzy_address_check(
-                        autocomplete_address, gp_address
+                    similarity_score = autocomplete_fuzzy_check(
+                        giving_partner.name,
+                        autocomplete_name,
+                        gp_address,
+                        autocomplete_address,
                     )
-                except ValueError as e:
+                except Exception:
                     logger.warn(
-                        "Skipping suggestion due to fuzzy address check error",
+                        "Skipping suggestion due to autocomplete fuzzy check error",
                         value={
-                            "exception": str(e),
                             "giving_partner_id": str(giving_partner.id),
-                            "giving_partner_address": gp_address,
-                            "google_address": autocomplete_address,
                         },
+                        exc_info=True,
                     )
                     continue
                 logger.info(
                     "Autocomplete fuzzy check results",
                     value={
                         "giving_partner_id": str(giving_partner.id),
-                        "autocomplete_address": autocomplete_address,
+                        "giving_partner_name": giving_partner.name,
+                        "autocomplete_name": autocomplete_name,
                         "giving_partner_address": gp_address,
+                        "autocomplete_address": autocomplete_address,
                         "similarity_score": str(similarity_score),
                     },
                 )

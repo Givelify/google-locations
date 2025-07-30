@@ -171,13 +171,13 @@ def process_autocomplete_results(session, giving_partner, place_id):
             longitude=longitude,
             session=session,
         )
-    except Exception as e:
+    except Exception:
         logger.error(
             "Failure in process_autocomplete_results",
             value={
-                "exception": str(e),
                 "giving_partner_id": str(giving_partner.id),
             },
+            exc_info=True,
         )
         return False
 
