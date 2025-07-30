@@ -74,7 +74,7 @@ def autocomplete_name_fuzzy_check(gp_id, gp_name, api_name):
 
 
 def autocomplete_address_fuzzy_check(gp_id, gp_address, api_address):
-    """Function that compares the address and name returned by autocomplete API
+    """Function that compares the address returned by autocomplete API
     with gp data in our database"""
     try:
         preprocessed_api_address = normalize_address(api_address)
