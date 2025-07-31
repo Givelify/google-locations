@@ -20,8 +20,8 @@ class Config:
     DB_PASSWORD = os.getenv("PLATFORM_DB_PASSWORD")
     DB_NAME = os.getenv("PLATFORM_DB_NAME")
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
-    TEXT_SEARCH_MATCHING_THRESHOLD = 90
-    AUTOCOMPLETE_MATCHING_THRESHOLD = 90
+    TEXT_SEARCH_MATCHING_THRESHOLD = 85
+    AUTOCOMPLETE_MATCHING_THRESHOLD = 85
     stdout_handler = logging.StreamHandler(sys.stdout)
     logger = slogger.StructuredLogger.getLogger(
         "google-locations", "INFO", stdout_handler

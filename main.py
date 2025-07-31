@@ -25,15 +25,11 @@ def main():
             db_password=Config.DB_PASSWORD,
             db_name=Config.DB_NAME,
         )
-    except SystemExit as e:
-        logger.error(
-            "Parsing command-line arguments failed.", value={"exception": str(e)}
-        )
+    except SystemExit:
+        logger.error("Parsing command-line arguments failed.", exc_info=True)
         raise
-    except Exception as e:
-        logger.error(
-            "Failed to initialize database engine.", value={"exception": str(e)}
-        )
+    except Exception:
+        logger.error("Failed to initialize database engine.", exc_info=True)
         raise
 
     try:
@@ -52,16 +48,16 @@ def main():
                         session,
                         args.enable_autocomplete,
                     )
-                except Exception as e:
+                except Exception:
                     logger.error(
                         "Error processing giving partner",
                         value={
-                            "exception": str(e),
                             "giving_partner_id": str(giving_partner.id),
                         },
+                        exc_info=True,
                     )
-    except Exception as e:
-        logger.error("Failed to update with Google location data", value=str(e))
+    except Exception:
+        logger.error("Failed to update with Google location data", exc_info=True)
     finally:
         engine.dispose()
 
@@ -98,6 +94,7 @@ def process_gp(giving_partner, session, enable_autocomplete=False):
             },
         )
         return
+
     top_text_search_result = text_search_results[0]
     if text_search_similarity_check(giving_partner, top_text_search_result):
         process_text_search_results(session, giving_partner, top_text_search_result)
