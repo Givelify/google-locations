@@ -40,6 +40,23 @@ class GivingPartners(Base):
     active = Column(Integer, nullable=False)
     unregistered = Column(Integer, nullable=False)
 
+class DoneeInfo(Base):
+    """donee_info table"""
+
+    __tablename__ = "donee_info"
+
+    donee_id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(255), nullable=False)
+    phone = Column(String(25), nullable=False)
+    address = Column(String(255), nullable=False)
+    city = Column(String(55), nullable=False)
+    state = Column(String(55), nullable=False)
+    country = Column(String(50), nullable=True)
+    zip = Column(String(10), nullable=False)
+    donee_lat = Column(Float, nullable=False)
+    donee_lon = Column(Float, nullable=False)
+    active = Column(Integer, nullable=False)
+    unregistered = Column(Integer, nullable=False)
 
 # Database setup function
 def get_engine(db_host, db_port, db_user, db_password, db_name):

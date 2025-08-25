@@ -130,3 +130,32 @@ def geocoding_api(place_id):
         else:
             logger.error(f"Google Geocoding API call failed: {e}")
         raise
+
+def geocoding_reverse_api(latitude, longitude):
+    """Function calling text search API"""
+    base_url = "https://maps.googleapis.com/maps/api/geocode/json"
+
+    latlng = f"{latitude},{longitude}"
+
+    params = {
+        "latlng": latlng,
+        "key": Config.GOOGLE_API_KEY,
+        "extra_computations": "BUILDING_AND_ENTRANCES",
+        "entrances": "true",
+    }
+
+    try:
+        response = requests.post(base_url, params=params, timeout=30)
+        response.raise_for_status()
+        data = response.json()
+        return data
+    except RequestException as e:
+        if (
+            isinstance(e, requests.HTTPError)
+            and e.response is not None
+            and e.response.status_code == 429
+        ):
+            logger.error(f"429 Error while calling Google geocoding API: {e}")
+        else:
+            logger.error(f"Google Geocoding API call failed: {e}")
+        raise

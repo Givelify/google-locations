@@ -221,3 +221,34 @@ def process_text_search_results(session, giving_partner, text_search_result):
                 "giving_partner_id": str(giving_partner.id),
             },
         )
+
+def fetch_gp_locations(session):
+    stmt = select(GivingPartners).where(
+        GivingPartners.unregistered == 0,
+        GivingPartners.active == 1,
+    )
+
+    if (Config.GP_IDS):
+        gp_ids = Config.GP_IDS.split(',')
+        stmt = stmt.where(GivingPartners.id.in_(gp_ids))
+
+    # logger.info(f"Query Statement: {stmt}")
+    return session.scalars(stmt).all()
+
+def extract_outlines(results):
+    logger.debug(f"Google API result size : {len(results)}")
+    google_outlines = []
+
+    for result in results:
+        if "buildings" in result:
+            buildings = result["buildings"]
+            for building in buildings:
+                building_outlines = building["building_outlines"]
+                for building_outline in building_outlines:
+                    display_polygon = building_outline["display_polygon"]
+                    ploygons = preprocess_building_outlines(display_polygon)
+                    # print(f"Returned a Ploygon : {type(ploygons)}")
+                    # if isinstance(ploygons, Polygon):
+                    #     ploygons = MultiPolygon(ploygons)
+                    google_outlines.append(ploygons)
+    return google_outlines
