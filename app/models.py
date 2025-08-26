@@ -3,7 +3,7 @@
 
 
 from geoalchemy2 import Geometry
-from sqlalchemy import Column, Float, Integer, String, create_engine
+from sqlalchemy import Column, Float, Integer, String, Text, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 Base = declarative_base()
@@ -14,12 +14,20 @@ class GoogleGivingPartnerLocations(Base):
 
     __tablename__ = "google_giving_partner_locations"
 
-    place_id = Column(String(255), primary_key=True, nullable=False)
-    giving_partner_id = Column(Integer, index=True)
+    giving_partner_id = Column(Integer, primary_key=True)
+    place_id = Column(String(255), nullable=False)
     address = Column(String(255), nullable=False)
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
-    outlines = Column(Geometry(geometry_type="GEOMETRY", srid=4326), nullable=True)
+
+
+class GoogleGivingPartnerOutlines(Base):
+    """google_giving_partner_outlines table"""
+
+    __tablename__ = "google_giving_partner_outlines"
+
+    giving_partner_id = Column(Integer, primary_key=True)
+    outlines = Column(Text, nullable=False)
 
 
 class GivingPartners(Base):

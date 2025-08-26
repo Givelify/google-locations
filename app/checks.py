@@ -5,8 +5,8 @@ import re
 
 from rapidfuzz import fuzz
 
-from config import Config
-from google_api_calls import call_autocomplete
+from app.config import Config
+from app.google_api_calls import call_autocomplete
 
 logger = Config.logger
 

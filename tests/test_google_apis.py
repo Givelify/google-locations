@@ -5,14 +5,14 @@ from unittest.mock import MagicMock, patch
 
 from requests.exceptions import RequestException
 
-from google_api_calls import call_autocomplete, geocoding_api, text_search
-from models import GivingPartners
+from app.google_api_calls import _call_geocoding_api, call_autocomplete, text_search
+from app.models import GivingPartners
 
 
 class TestApiFunctions(unittest.TestCase):
     """unit test class to test google api function calls"""
 
-    @patch("google_api_calls.requests.post")
+    @patch("app.google_api_calls.requests.post")
     def test_text_search_success(self, mock_post):
         """Mock the response from the text_search api"""
         mock_response = MagicMock()
@@ -57,7 +57,7 @@ class TestApiFunctions(unittest.TestCase):
             result[0]["formattedAddress"], "484 test Rd, test city, TS 45678, USA"
         )
 
-    @patch("google_api_calls.requests.post")
+    @patch("app.google_api_calls.requests.post")
     def test_text_search_failure(self, mock_post):
         """Mock a failed response for text_search api call (non-200 status code)"""
         mock_response = MagicMock()
@@ -87,7 +87,7 @@ class TestApiFunctions(unittest.TestCase):
         self.assertRaises(RequestException)
         self.assertGreaterEqual(mock_post.call_count, 2)
 
-    @patch("google_api_calls.requests.post")
+    @patch("app.google_api_calls.requests.post")
     def test_call_autocomplete_success(self, mock_post):
         """Mock the response for the autocomplete api call"""
         mock_response = MagicMock()
@@ -145,7 +145,7 @@ class TestApiFunctions(unittest.TestCase):
             "West test Drive, test city, TS, USA",
         )
 
-    @patch("google_api_calls.requests.post")
+    @patch("app.google_api_calls.requests.post")
     def test_call_autocomplete_failure(self, mock_post):
         """Mock a failed response for the autocomplete api call (non-200 status code)"""
         mock_response = MagicMock()
@@ -175,7 +175,7 @@ class TestApiFunctions(unittest.TestCase):
         self.assertRaises(RequestException)
         self.assertGreaterEqual(mock_post.call_count, 2)
 
-    @patch("google_api_calls.requests.post")
+    @patch("app.google_api_calls.requests.post")
     def test_call_autocomplete_with_no_location_bias(self, mock_post):
         """Mock a success response for the autocomplete api when gp doesnt have lat / long in the database"""  # pylint: disable=line-too-long
         mock_response = MagicMock()
@@ -235,7 +235,7 @@ class TestApiFunctions(unittest.TestCase):
             "West test Drive, test city, TS, USA",
         )
 
-    @patch("google_api_calls.requests.post")
+    @patch("app.google_api_calls.requests.post")
     def test_geocoding_api_success(self, mock_post):
         """Mock the response from the geocoding_api api"""
         mock_response = MagicMock()
@@ -343,7 +343,8 @@ class TestApiFunctions(unittest.TestCase):
         mock_post.return_value = mock_response
 
         place_id = "wiebiwebewfbweiqbfiq"
-        result = geocoding_api(place_id)
+        data = {"place": f"places/{place_id}"}
+        result = _call_geocoding_api(data)
 
         self.assertGreaterEqual(len(result), 1, "geocoding_api call success")
         self.assertEqual(
@@ -351,7 +352,7 @@ class TestApiFunctions(unittest.TestCase):
             place_id,
         )
 
-    @patch("google_api_calls.requests.post")
+    @patch("app.google_api_calls.requests.post")
     def test_geocoding_api_failure(self, mock_post):
         """Mock a failed response for text_search api call (non-200 status code)"""
         mock_response = MagicMock()
@@ -360,11 +361,12 @@ class TestApiFunctions(unittest.TestCase):
         mock_post.return_value = mock_response
 
         place_id = "slfgrewoufewqifipew"
+        data = {"place": f"places/{place_id}"}
 
-        geocoding_api(place_id)
+        _call_geocoding_api(data)
         self.assertRaises(RequestException)
         # if a 429 occurs
-        geocoding_api(place_id)
+        _call_geocoding_api(data)
         self.assertRaises(RequestException)
         self.assertGreaterEqual(mock_post.call_count, 2)
 

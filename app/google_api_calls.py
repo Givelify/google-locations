@@ -11,7 +11,7 @@ from tenacity import (
     wait_exponential,
 )
 
-from config import Config
+from app.config import Config
 
 logger = Config.logger
 
@@ -21,6 +21,7 @@ def is_retryable(exception):
     so that the call could be retried"""
     return (
         isinstance(exception, RequestException)
+        and getattr(exception, "response", None) is not None
         and exception.response.status_code == 429
     )
 
@@ -99,34 +100,65 @@ def call_autocomplete(giving_partner):
     return data
 
 
+def geocoding_api_coordinate(latitude, longitude):
+    """Function calling text search API"""
+    data = {
+        "locationQuery": {"location": {"latitude": latitude, "longitude": longitude}}
+    }
+
+    return _call_geocoding_api(data)
+
+
+def geocoding_api_id(place_id):
+    """Function calling text search API"""
+    data = {"place": f"places/{place_id}"}
+
+    return _call_geocoding_api(data)
+
+
+def geocoding_api_address(address, city, state, zipcode, country):
+    """Function calling text search API"""
+    data = {
+        "addressQuery": {
+            "addressQuery": f"{address}, {city}, {state} {zipcode}, {country}"
+        }
+    }
+
+    return _call_geocoding_api(data)
+
+
 @retry(
     wait=wait_exponential(multiplier=1, min=5, max=10),
     stop=stop_after_attempt(3),
     retry=retry_if_exception_type(is_retryable),
 )
-def geocoding_api(place_id):
-    """Function calling text search API"""
-    base_url = "https://maps.googleapis.com/maps/api/geocode/json"
-
-    params = {
-        "place_id": place_id,
-        "key": Config.GOOGLE_API_KEY,
-        "extra_computations": "BUILDING_AND_ENTRANCES",
-        "entrances": "true",
+def _call_geocoding_api(data):
+    """Internal function to call the Google Geocoding API with given params."""
+    base_url = "https://geocode.googleapis.com/v4alpha/geocode/destinations"
+    headers = {
+        "X-Goog-Api-Key": Config.GOOGLE_API_KEY,
+        "Content-Type": "application/json",
+        "X-Goog-FieldMask": "destinations.primary.place,destinations.primary.location,destinations.primary.structureType,destinations.primary.displayPolygon,destinations.containingPlaces",
     }
-
     try:
-        response = requests.post(base_url, params=params, timeout=30)
+        response = requests.post(base_url, headers=headers, json=data, timeout=30)
         response.raise_for_status()
-        data = response.json()
-        return data
+        return response.json()
     except RequestException as e:
         if (
             isinstance(e, requests.HTTPError)
             and e.response is not None
             and e.response.status_code == 429
         ):
-            logger.error(f"429 Error while calling Google geocoding API: {e}")
+            logger.error(
+                "429 Error while calling Google geocoding API",
+                value={"params": {k: v for k, v in data.items() if k != "key"}},
+                exc_info=True,
+            )
         else:
-            logger.error(f"Google Geocoding API call failed: {e}")
+            logger.error(
+                "Google Geocoding API call failed",
+                value={"params": {k: v for k, v in data.items() if k != "key"}},
+                exc_info=True,
+            )
         raise
