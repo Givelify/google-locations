@@ -1,8 +1,6 @@
 # pylint: disable=too-few-public-methods
 """datetime object for defining created_at, updated_at columns"""
 
-
-from geoalchemy2 import Geometry
 from sqlalchemy import Column, Float, Integer, String, Text, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
