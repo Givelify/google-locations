@@ -317,7 +317,7 @@ class TestMain(unittest.TestCase):
         mock_text_search_similarity_check.assert_not_called()
         mock_process_text_search_results.assert_not_called()
 
-    @patch("app.services.building_outlines_only.geocoding_api_address")
+    @patch("app.services.building_outlines_only.geocoding_api_coordinates")
     @patch("app.services.building_outlines_only.extract_building_polygons")
     @patch("app.services.building_outlines_only.preprocess_building_outlines")
     @patch("app.services.building_outlines_only.insert_google_outlines")
@@ -326,21 +326,18 @@ class TestMain(unittest.TestCase):
         mock_insert_google_outlines,
         mock_preprocess_building_outlines,
         mock_extract_building_polygons,
-        mock_geocoding_api_address,
+        mock_geocoding_api_coordinates,
     ):
         """Testing process_outlines_only success"""
         mock_gp = MagicMock()
         mock_gp.id = 1
-        mock_gp.address = "address_1"
+        mock_gp.latitude = "123"
+        mock_gp.longitude = "321"
 
         mock_session = MagicMock()
-
         mock_geocoding_results = {"destinations": [{MagicMock()}]}
-
-        mock_geocoding_api_address.return_value = mock_geocoding_results
-
+        mock_geocoding_api_coordinates.return_value = mock_geocoding_results
         mock_building_outlines = [{MagicMock()}]
-
         mock_extract_building_polygons.return_value = mock_building_outlines
 
         mock_outline = MagicMock()
@@ -348,15 +345,15 @@ class TestMain(unittest.TestCase):
 
         process_outlines_only(mock_session, mock_gp)
 
+        mock_geocoding_api_coordinates.assert_called_with("123", "321")
         mock_preprocess_building_outlines.assert_called_with(mock_building_outlines[0])
-
         mock_insert_google_outlines.assert_called_with(
             mock_session,
             mock_gp.id,
             [mock_outline],
         )
 
-    @patch("app.services.building_outlines_only.geocoding_api_address")
+    @patch("app.services.building_outlines_only.geocoding_api_coordinate")
     @patch("app.services.building_outlines_only.extract_building_polygons")
     @patch("app.services.building_outlines_only.preprocess_building_outlines")
     @patch("app.services.building_outlines_only.insert_google_outlines")
@@ -365,29 +362,24 @@ class TestMain(unittest.TestCase):
         mock_insert_google_outlines,
         mock_preprocess_building_outlines,
         mock_extract_building_polygons,
-        mock_geocoding_api_address,
+        mock_geocoding_api_coordinate,
     ):
         """Testing process_outlines_only no outlines"""
         mock_gp = MagicMock()
         mock_gp.id = 1
-        mock_gp.address = "address_1"
+        mock_gp.latitude = "123"
+        mock_gp.longitude = "321"
 
         mock_session = MagicMock()
-
         mock_geocoding_results = {"destinations": [{MagicMock()}]}
-
-        mock_geocoding_api_address.return_value = mock_geocoding_results
-
+        mock_geocoding_api_coordinate.return_value = mock_geocoding_results
         mock_building_outlines = [{MagicMock()}]
-
         mock_extract_building_polygons.return_value = mock_building_outlines
-
         mock_preprocess_building_outlines.return_value = None
 
         process_outlines_only(mock_session, mock_gp)
 
         mock_preprocess_building_outlines.assert_called_with(mock_building_outlines[0])
-
         mock_insert_google_outlines.assert_not_called()
 
 

@@ -1,7 +1,7 @@
 """Module containing service functions outlines only path"""
 
 from app.config import Config
-from app.google_api_calls import geocoding_api_address
+from app.google_api_calls import geocoding_api_coordinate
 from app.helper import (
     extract_building_polygons,
     insert_google_outlines,
@@ -21,12 +21,8 @@ def process_outlines_only(session, giving_partner):
     )
     outlines = []
     try:
-        geocoding_result = geocoding_api_address(
-            giving_partner.address,
-            giving_partner.city,
-            giving_partner.state,
-            giving_partner.zip,
-            giving_partner.country,
+        geocoding_result = geocoding_api_coordinate(
+            giving_partner.latitude, giving_partner.longitude
         )
 
         destinations = geocoding_result.get("destinations", [])

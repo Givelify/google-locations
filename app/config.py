@@ -23,7 +23,6 @@ class Config:
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
     GP_IDS = os.getenv("GP_IDS") or ""
-
     BUILDING_OUTLINES_ONLY = os.getenv("BUILDING_OUTLINES_ONLY", "true").lower() in (
         "true",
         "1",
