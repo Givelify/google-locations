@@ -1,6 +1,5 @@
 """Module that contains helper functions"""
 
-from shapely.geometry import MultiPolygon, Polygon
 from sqlalchemy import and_, func, select
 from sqlalchemy.exc import SQLAlchemyError
 

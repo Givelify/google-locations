@@ -5,6 +5,4 @@ dotenv
 givelifylogging @ git+https://github.com/Givelify/structured-logging-python-package.git
 sqlalchemy
 tenacity
-shapely
-geoalchemy2
 cryptography

@@ -268,15 +268,13 @@ class TestMain(unittest.TestCase):
         mock_building_outlines = [{MagicMock()}]
         mock_extract_building_polygons.return_value = mock_building_outlines
 
-        mock_outline = MagicMock()
-
         process_outlines_only(mock_session, mock_gp)
 
         mock_geocoding_api_coordinate.assert_called_with("123", "321")
         mock_insert_google_outlines.assert_called_with(
             mock_session,
             mock_gp.id,
-            [mock_outline],
+            mock_building_outlines,
         )
 
     @patch("app.services.building_outlines_only.geocoding_api_coordinate")
