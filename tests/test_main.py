@@ -295,7 +295,7 @@ class TestMain(unittest.TestCase):
         mock_session = MagicMock()
         mock_geocoding_results = {"destinations": [{MagicMock()}]}
         mock_geocoding_api_coordinate.return_value = mock_geocoding_results
-        mock_building_outlines = [{MagicMock()}]
+        mock_building_outlines = []
         mock_extract_building_polygons.return_value = mock_building_outlines
 
         process_outlines_only(mock_session, mock_gp)
