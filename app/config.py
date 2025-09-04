@@ -20,12 +20,6 @@ class Config:
     DB_PASSWORD = os.getenv("PLATFORM_DB_PASSWORD")
     DB_NAME = os.getenv("PLATFORM_DB_NAME")
 
-    PROD_DB_HOST = os.getenv("PROD_PLATFORM_DB_HOST")
-    PROD_DB_PORT = os.getenv("PROD_PLATFORM_DB_PORT")
-    PROD_DB_USER = os.getenv("PROD_PLATFORM_DB_USERNAME")
-    PROD_DB_PASSWORD = os.getenv("PROD_PLATFORM_DB_PASSWORD")
-    PROD_DB_NAME = os.getenv("PROD_PLATFORM_DB_NAME")
-
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
     GP_IDS = os.getenv("GP_IDS") or ""
