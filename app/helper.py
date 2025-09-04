@@ -7,9 +7,9 @@ from sqlalchemy.exc import SQLAlchemyError
 from app.config import Config
 from app.enums import FilterType
 from app.models import (
+    GivingPartnerOutlines,
     GivingPartners,
     GoogleGivingPartnerLocations,
-    GoogleGivingPartnerOutlines,
 )
 
 logger = Config.logger
@@ -35,9 +35,9 @@ def insert_google_data(
         )
         session.merge(gp_location_data)
         if outlines:
-            gp_outline_data = GoogleGivingPartnerOutlines(
+            gp_outline_data = GivingPartnerOutlines(
                 giving_partner_id=giving_partner_id,
-                outlines=str(outlines),
+                outlines=outlines,
             )
             session.merge(gp_outline_data)
             logger.info(
@@ -64,9 +64,9 @@ def insert_google_outlines(
 ):
     """Handles the MySQL table insertion"""
     try:
-        gp_info = GoogleGivingPartnerOutlines(
+        gp_info = GivingPartnerOutlines(
             giving_partner_id=giving_partner_id,
-            outlines=str(outlines),
+            outlines=outlines,
         )
         session.merge(gp_info)
         session.commit()
@@ -103,7 +103,7 @@ def get_giving_partners(session, filter_type):
         join_table = (
             GoogleGivingPartnerLocations
             if filter_type == FilterType.LOCATION_AND_OUTLINES
-            else GoogleGivingPartnerOutlines
+            else GivingPartnerOutlines
         )
 
         query = (
@@ -123,33 +123,6 @@ def get_giving_partners(session, filter_type):
         )
 
     return session.scalars(query).all()
-
-
-def preprocess_building_outlines(outlines):
-    """Returns the preprocessed building outlines co-ordinates as a geometry object"""
-    shapely_geometry = None
-    if outlines and len(outlines) > 0:
-        coordinates = outlines["coordinates"]
-        t = outlines.get("type", "").lower() if isinstance(outlines, dict) else ""
-        try:
-            if t == "polygon":
-                shapely_geometry = Polygon(coordinates[0])
-            elif t == "multipolygon":
-                polygons = []
-                for polygon_coords in coordinates:
-                    exterior_ring = polygon_coords[0]
-                    interior_rings = (
-                        polygon_coords[1:] if len(polygon_coords) > 1 else None
-                    )
-                    polygons.append(Polygon(exterior_ring, interior_rings))
-
-                shapely_geometry = MultiPolygon(polygons)
-        except (ValueError, TypeError) as e:
-            logger.error(f"Preprocessing geocoding API outlines failed: {e}")
-            raise e
-    if shapely_geometry:
-        return shapely_geometry.wkt
-    return None
 
 
 def extract_building_polygons(data):

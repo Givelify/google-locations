@@ -1,7 +1,7 @@
 # pylint: disable=too-few-public-methods
 """datetime object for defining created_at, updated_at columns"""
 
-from sqlalchemy import Column, Float, Integer, String, Text, create_engine
+from sqlalchemy import JSON, Column, Float, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 Base = declarative_base()
@@ -19,13 +19,13 @@ class GoogleGivingPartnerLocations(Base):
     longitude = Column(Float, nullable=False)
 
 
-class GoogleGivingPartnerOutlines(Base):
-    """google_giving_partner_outlines table"""
+class GivingPartnerOutlines(Base):
+    """giving_partner_outlines table"""
 
-    __tablename__ = "google_giving_partner_outlines"
+    __tablename__ = "giving_partner_outlines"
 
     giving_partner_id = Column(Integer, primary_key=True)
-    outlines = Column(Text, nullable=False)
+    outlines = Column(JSON, nullable=False)
 
 
 class GivingPartners(Base):

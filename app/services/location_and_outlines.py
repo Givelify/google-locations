@@ -3,11 +3,7 @@
 from app.checks import autocomplete_check, text_search_similarity_check
 from app.config import Config
 from app.google_api_calls import geocoding_api_id, text_search
-from app.helper import (
-    extract_building_polygons,
-    insert_google_data,
-    preprocess_building_outlines,
-)
+from app.helper import extract_building_polygons, insert_google_data
 
 logger = Config.logger
 
@@ -36,7 +32,7 @@ def process_location_and_outlines(session, giving_partner):
             return
 
     text_search_results = text_search(giving_partner)
-    if not len(text_search_results) > 0:
+    if not text_search_results:
         logger.info(
             "No text search results for GP",
             value={
@@ -66,8 +62,17 @@ def process_location_and_outlines(session, giving_partner):
 
 def process_autocomplete_results(session, giving_partner, place_id):
     """Handles GP location retrieval using Autocomplete API logic"""
-    gp_address = f"{giving_partner.address}, {giving_partner.city}, {giving_partner.state}, {giving_partner.country}"  # pylint: disable=line-too-long
-    outlines = []
+    gp_address = ", ".join(
+        filter(
+            None,
+            [
+                giving_partner.address,
+                giving_partner.city,
+                giving_partner.state,
+                giving_partner.country,
+            ],
+        )
+    )
     latitude = giving_partner.latitude
     longitude = giving_partner.longitude
     address = gp_address
@@ -75,11 +80,6 @@ def process_autocomplete_results(session, giving_partner, place_id):
         geocoding_result = geocoding_api_id(place_id)
         destinations = geocoding_result.get("destinations", [])
         building_outlines = extract_building_polygons(destinations)
-
-        for building_outline in building_outlines:
-            outline = preprocess_building_outlines(building_outline)
-            if outline:
-                outlines.append(outline)
 
         # retrieve location details from google api
         if destinations:
@@ -101,7 +101,7 @@ def process_autocomplete_results(session, giving_partner, place_id):
             address,
             latitude,
             longitude,
-            outlines,
+            building_outlines,
         )
     except Exception:
         logger.error(
@@ -118,16 +118,10 @@ def process_autocomplete_results(session, giving_partner, place_id):
 
 def process_text_search_results(session, giving_partner, text_search_result):
     """Handles GP location retrieval using text search API"""
-    outlines = []
     try:
         geocoding_result = geocoding_api_id(text_search_result["id"])
         destinations = geocoding_result.get("destinations", [])
         building_outlines = extract_building_polygons(destinations)
-
-        for building_outline in building_outlines:
-            outline = preprocess_building_outlines(building_outline)
-            if outline:
-                outlines.append(outline)
 
         insert_google_data(
             session,
@@ -136,7 +130,7 @@ def process_text_search_results(session, giving_partner, text_search_result):
             text_search_result["formattedAddress"],
             text_search_result["location"]["latitude"],
             text_search_result["location"]["longitude"],
-            outlines,
+            building_outlines,
         )
     except Exception:
         logger.error(
