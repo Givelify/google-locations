@@ -3,20 +3,20 @@
 import unittest
 from unittest.mock import patch
 
-from checks import (
+from app.checks import (
     autocomplete_address_fuzzy_check,
     autocomplete_check,
     autocomplete_name_fuzzy_check,
     normalize_address,
     text_search_similarity_check,
 )
-from models import GivingPartners
+from app.models import GivingPartners
 
 
 class TestChecks(unittest.TestCase):
     """Unit tests for the checks module"""
 
-    @patch("checks.fuzz.ratio", return_value=95)
+    @patch("app.checks.fuzz.ratio", return_value=95)
     def test_text_search_similarity_check(
         self,
         mock_ratio,
@@ -91,7 +91,7 @@ class TestChecks(unittest.TestCase):
         with self.assertRaises(Exception):
             normalize_address("630 W 28th St, IN, America")
 
-    @patch("checks.fuzz.ratio")
+    @patch("app.checks.fuzz.ratio")
     def test_autocomplete_name_fuzzy_check(
         self,
         mock_fuzz_ratio,
@@ -103,8 +103,8 @@ class TestChecks(unittest.TestCase):
         result = autocomplete_name_fuzzy_check(1, gp_name, api_name)
         self.assertEqual(result, 95)
 
-    @patch("checks.normalize_address")
-    @patch("checks.fuzz.ratio")
+    @patch("app.checks.normalize_address")
+    @patch("app.checks.fuzz.ratio")
     def test_autocomplete_address_fuzzy_check(
         self,
         mock_fuzz_ratio,
@@ -131,8 +131,8 @@ class TestChecks(unittest.TestCase):
         result = autocomplete_address_fuzzy_check(1, gp_address, api_address)
         self.assertEqual(result, 95)
 
-    @patch("checks.normalize_address")
-    @patch("checks.fuzz.ratio")
+    @patch("app.checks.normalize_address")
+    @patch("app.checks.fuzz.ratio")
     def test_autocomplete_address_fuzzy_check_exception(
         self,
         mock_fuzz_ratio,
@@ -146,10 +146,10 @@ class TestChecks(unittest.TestCase):
             autocomplete_address_fuzzy_check(1, gp_address1, api_address1)
         mock_fuzz_ratio.assert_not_called()
 
-    @patch("checks.autocomplete_address_fuzzy_check")
-    @patch("checks.autocomplete_name_fuzzy_check")
+    @patch("app.checks.autocomplete_address_fuzzy_check")
+    @patch("app.checks.autocomplete_name_fuzzy_check")
     @patch(
-        "checks.call_autocomplete",
+        "app.checks.call_autocomplete",
         return_value={
             "suggestions": [
                 {
