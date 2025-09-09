@@ -1,0 +1,14 @@
+# See documentation on https://givelify15.atlassian.net/wiki/x/LADfc
+---
+notifications_slack_channel: "#core-services-notifications"
+import_ansible_secrets: "False"
+execute_smoke_tests: "False"
+# helm_repo_branch: master
+
+services:
+  - service: google-locations
+    template: laravel-api-app
+    app:
+      dockerfile: Dockerfile
+
+components:
