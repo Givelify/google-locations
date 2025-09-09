@@ -5,7 +5,7 @@ properties([
     parameters([
         gitParameter(name: 'BRANCH_NAME',
                      type: 'PT_BRANCH',
-                     defaultValue: 'origin/',
+                     defaultValue: 'origin/main',
                      branchFilter: '.*',
                      quickFilterEnabled: true,
                      sortMode: 'ASCENDING',
@@ -22,7 +22,7 @@ pipeline {
         }
     }
     environment {
-        MAIN_BRANCH = "origin/"
+        MAIN_BRANCH = "origin/main"
     }
     options {
         timestamps()
@@ -99,7 +99,9 @@ pipeline {
         }
         stage('Approval for PROD Deployment') {
             when {
-                env.BRANCH_NAME == env.MAIN_BRANCH
+                expression {
+                    env.BRANCH_NAME == env.MAIN_BRANCH
+                }
             }
             steps {
                 script {
@@ -110,7 +112,9 @@ pipeline {
         }
         stage('Provision PROD Infrastructure') {
             when {
-                env.BRANCH_NAME == env.MAIN_BRANCH
+                expression {
+                    env.BRANCH_NAME == env.MAIN_BRANCH
+                }
             }
             steps {
                 script {
@@ -121,7 +125,9 @@ pipeline {
         }
         stage('Deploy to PROD') {
             when {
-                env.BRANCH_NAME == env.MAIN_BRANCH
+                expression {
+                    env.BRANCH_NAME == env.MAIN_BRANCH
+                }
             }
             steps {
                 script {

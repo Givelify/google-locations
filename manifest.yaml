@@ -7,8 +7,26 @@ execute_smoke_tests: "False"
 
 services:
   - service: google-locations
-    template: laravel-api-app
+    template: service-app
     app:
       dockerfile: Dockerfile
+    jobs:
+      retrieve-gp-google-outlines:
+        schedule: "0 0 1 7 *" # We only plan to run this manually, but a schedule is required
+        command: ["python3", "-m", "app.main"]
+        suspend: true # Only Manual run
 
 components:
+  - component: database
+    database: platform
+  - component: custom-config
+    defaults:
+      BUILDING_OUTLINES_ONLY: True
+      ENABLE_AUTOCOMPLETE: True
+    env:
+      qa:
+        BUILDING_OUTLINES_ONLY: True
+        ENABLE_AUTOCOMPLETE: True
+      prod:
+        BUILDING_OUTLINES_ONLY: True
+        ENABLE_AUTOCOMPLETE: True
