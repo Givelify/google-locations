@@ -15,11 +15,11 @@ def main():
     engine = None
     try:
         engine = get_engine(
-            db_host=Config.DB_HOST,
-            db_port=Config.DB_PORT,
-            db_user=Config.DB_USER,
-            db_password=Config.DB_PASSWORD,
-            db_name=Config.DB_NAME,
+            db_host=Config.PLATFORM_DB_HOST_WRITE,
+            db_port=Config.PLATFORM_DB_PORT,
+            db_user=Config.PLATFORM_DB_USERNAME,
+            db_password=Config.PLATFORM_DB_PASSWORD,
+            db_name=Config.PLATFORM_DB_DATABASE,
         )
 
         with get_session(engine) as session:

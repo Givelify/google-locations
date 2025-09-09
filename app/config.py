@@ -14,11 +14,11 @@ load_dotenv()
 class Config:
     """config file"""
 
-    DB_HOST = os.getenv("PLATFORM_DB_HOST")
-    DB_PORT = os.getenv("PLATFORM_DB_PORT")
-    DB_USER = os.getenv("PLATFORM_DB_USERNAME")
-    DB_PASSWORD = os.getenv("PLATFORM_DB_PASSWORD")
-    DB_NAME = os.getenv("PLATFORM_DB_NAME")
+    PLATFORM_DB_HOST_WRITE = os.getenv("PLATFORM_DB_HOST_WRITE")
+    PLATFORM_DB_PORT = os.getenv("PLATFORM_DB_PORT")
+    PLATFORM_DB_USERNAME = os.getenv("PLATFORM_DB_USERNAME")
+    PLATFORM_DB_PASSWORD = os.getenv("PLATFORM_DB_PASSWORD")
+    PLATFORM_DB_DATABASE = os.getenv("PLATFORM_DB_DATABASE")
 
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
