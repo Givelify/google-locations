@@ -3,11 +3,13 @@
 notifications_slack_channel: "#core-services-notifications"
 import_ansible_secrets: "False"
 execute_smoke_tests: "False"
-# helm_repo_branch: master
+helm_repo_branch: main
+helm_templates_repo_use_branch: "false"
+helm_templates_repo_tag: v1.0.1
 
 services:
   - service: google-locations
-    template: laravel-api-app
+    template: service-app
     app:
       dockerfile: Dockerfile
     jobs:
