@@ -7,7 +7,7 @@ execute_smoke_tests: "False"
 
 services:
   - service: google-locations
-    template: service-app
+    template: laravel-api-app
     app:
       dockerfile: Dockerfile
     jobs:
