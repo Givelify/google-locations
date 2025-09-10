@@ -23,10 +23,3 @@ components:
     defaults:
       BUILDING_OUTLINES_ONLY: True
       ENABLE_AUTOCOMPLETE: True
-    env:
-      qa:
-        BUILDING_OUTLINES_ONLY: True
-        ENABLE_AUTOCOMPLETE: True
-      prod:
-        BUILDING_OUTLINES_ONLY: True
-        ENABLE_AUTOCOMPLETE: True
