@@ -1,0 +1,24 @@
+name: Jenkins Deployment Trigger
+
+on:
+  push:
+    branches:
+      - main
+
+env:
+  NAMESPACE: core-services
+
+jobs:
+  deployment:
+    name: 'Trigger Job Deployment'
+    runs-on: self-hosted
+    steps:
+      - name: Trigger Deployment
+        uses: givelify/jenkins-trigger-action@main
+        with:
+          url: "https://jenkins.ci.givelify.com"
+          job_name: "${{ env.NAMESPACE }}/job/${{ github.event.repository.name }}/job/DEPLOY/"
+          user_name: "Automation_Jenkins_Job_Trigger"
+          api_token: ${{ secrets.Automation_Jenkins_Job_Trigger }}
+          wait: "false"
+          parameter: '{"BRANCH_NAME":"origin/${{ github.head_ref || github.ref_name }}"}'
