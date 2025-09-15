@@ -1,5 +1,7 @@
 """Module that connects to mysql server and performs database operations"""
 
+import sys
+
 from app.config import Config
 from app.enums import FilterType
 from app.helper import get_giving_partners
@@ -14,6 +16,9 @@ def main():
     """Main module"""
     engine = None
     try:
+        logger.info(f"Database Name {Config.PLATFORM_DB_DATABASE})")
+        logger.info(f"Database Host {Config.PLATFORM_DB_HOST_WRITE})")
+        logger.info(f"Database Username {Config.PLATFORM_DB_USERNAME})")
         engine = get_engine(
             db_host=Config.PLATFORM_DB_HOST_WRITE,
             db_port=Config.PLATFORM_DB_PORT,
@@ -32,10 +37,11 @@ def main():
 
     except Exception:
         logger.error("Failed to update with Google data.", exc_info=True)
-        raise
+        return 1
     finally:
         if engine:
             engine.dispose()
+    return 0
 
 
 def run_location_and_outlines(session):
@@ -81,4 +87,4 @@ def run_outlines_only(session):
 
 
 if "__main__" == __name__:
-    main()
+    sys.exit(main())
