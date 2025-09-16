@@ -25,4 +25,3 @@ components:
     defaults:
       BUILDING_OUTLINES_ONLY: True
       ENABLE_AUTOCOMPLETE: True
-      GP_IDS: 55843
