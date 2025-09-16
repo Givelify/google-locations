@@ -16,9 +16,6 @@ def main():
     """Main module"""
     engine = None
     try:
-        logger.info(f"Database Name {Config.PLATFORM_DB_DATABASE})")
-        logger.info(f"Database Host {Config.PLATFORM_DB_HOST_WRITE})")
-        logger.info(f"Database Username {Config.PLATFORM_DB_USERNAME})")
         engine = get_engine(
             db_host=Config.PLATFORM_DB_HOST_WRITE,
             db_port=Config.PLATFORM_DB_PORT,
