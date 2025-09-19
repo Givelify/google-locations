@@ -1,5 +1,5 @@
 #!/bin/groovy
-@Library('deployer@K8S-549-Helm-Templates-split') _
+@Library('deployer') _
 
 properties([
     parameters([
