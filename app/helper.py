@@ -1,57 +1,49 @@
 """Module that contains helper functions"""
 
-from sqlalchemy import and_, func, select
+from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.config import Config
-from app.enums import FilterType
-from app.models import (
-    GivingPartnerOutlines,
-    GivingPartners,
-    GoogleGivingPartnerLocations,
-)
+from app.models import GivingPartnerOutlines, GivingPartners
 
 logger = Config.logger
 
 
 def insert_google_data(
     session,
-    giving_partner_id,
-    place_id,
-    address,
+    giving_partner,
     latitude,
     longitude,
     outlines,
 ):
     """Insert both location and outline data in a single transaction."""
     try:
-        gp_location_data = GoogleGivingPartnerLocations(
-            giving_partner_id=giving_partner_id,
-            place_id=place_id,
-            address=address,
-            latitude=latitude,
-            longitude=longitude,
-        )
-        session.merge(gp_location_data)
+        giving_partner.donee_lat = latitude
+        giving_partner.donee_lon = longitude
+
         if outlines:
             gp_outline_data = GivingPartnerOutlines(
-                giving_partner_id=giving_partner_id,
+                giving_partner_id=giving_partner.donee_id,
                 outlines=outlines,
             )
             session.merge(gp_outline_data)
+        else:
             logger.info(
-                "Prepared Google outline insert",
-                value={"giving_partner_id": giving_partner_id},
+                "Unable to find outlines for giving partner",
+                value={
+                    "giving_partner_id": str(giving_partner.donee_id),
+                },
             )
 
         session.commit()
         logger.info(
             "Succesfully inserted google data for Giving Partner",
             value={
-                "giving_partner_id": str(giving_partner_id),
+                "giving_partner_id": str(giving_partner.donee_id),
             },
         )
     except SQLAlchemyError as e:
+        session.rollback()
         logger.error(f"sqlalchemy insertion error: {e}")
         raise
 
@@ -76,49 +68,21 @@ def insert_google_outlines(
             },
         )
     except SQLAlchemyError as e:
+        session.rollback()
         logger.error(f"sqlalchemy insertion error: {e}")
         raise
 
 
-def base_filter():
-    "base filter to reuse in SELECT queries to retrieve GPs from donee_info DB"
-    return [
-        GivingPartners.active == 1,
-        GivingPartners.unregistered == 0,
-        GivingPartners.country.isnot(None),
-        func.trim(GivingPartners.country) != "",
-    ]
-
-
-def get_giving_partners(session, filter_type):
+def get_giving_partners(session, gp_ids=None):
     """Function that returns which query to use to get the GPs to process"""
-    gp_ids = [x.strip() for x in Config.GP_IDS.split(",") if x.strip()]
     if gp_ids:
-        # Use provided GP IDs directly
-        query = select(GivingPartners).where(GivingPartners.id.in_(gp_ids))
+        query = select(GivingPartners).where(GivingPartners.donee_id.in_(gp_ids))
         logger.info("Retrieving GPs defined in GP_IDS", value={"gp_ids": str(gp_ids)})
     else:
-        # Determine which join table to use
-        join_table = (
-            GoogleGivingPartnerLocations
-            if filter_type == FilterType.LOCATION_AND_OUTLINES
-            else GivingPartnerOutlines
-        )
-
         query = (
             select(GivingPartners)
-            .join(
-                join_table,
-                GivingPartners.id == join_table.giving_partner_id,
-                isouter=True,
-            )
-            .where(
-                and_(
-                    join_table.giving_partner_id.is_(None),
-                    *base_filter(),
-                )
-            )
-            .limit(1)
+            .where(GivingPartners.donee_lat == 0)
+            .limit(Config.DAILY_ITERATION_LIMIT)
         )
 
     return session.scalars(query).all()
@@ -142,3 +106,15 @@ def extract_building_polygons(data):
             polygons.extend(extract_building_polygons(item))
 
     return polygons
+
+
+def get_lat_lon(data):
+    """Extracts the first coordinate from list of destinations"""
+    return (
+        (
+            data[0].get("primary", {}).get("location", {}).get("latitude", -1),
+            data[0].get("primary", {}).get("location", {}).get("longitude", -1),
+        )
+        if data
+        else (-1, -1)
+    )

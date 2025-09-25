@@ -20,22 +20,13 @@ class Config:
     PLATFORM_DB_PASSWORD = os.getenv("PLATFORM_DB_PASSWORD")
     PLATFORM_DB_DATABASE = os.getenv("PLATFORM_DB_DATABASE")
 
+    MONO_DB_DATABASE = os.getenv("MONO_DB_DATABASE")
+
     GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
     GP_IDS = os.getenv("GP_IDS") or ""
-    BUILDING_OUTLINES_ONLY = os.getenv("BUILDING_OUTLINES_ONLY", "true").lower() in (
-        "true",
-        "1",
-        "t",
-    )
-    ENABLE_AUTOCOMPLETE = os.getenv("ENABLE_AUTOCOMPLETE", "true").lower() in (
-        "true",
-        "1",
-        "t",
-    )
 
-    TEXT_SEARCH_MATCHING_THRESHOLD = 85
-    AUTOCOMPLETE_MATCHING_THRESHOLD = 85
+    DAILY_ITERATION_LIMIT = int(os.getenv("DAILY_ITERATION_LIMIT", 1))
 
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
     stdout_handler = logging.StreamHandler(sys.stdout)
