@@ -26,7 +26,7 @@ class Config:
 
     GP_IDS = os.getenv("GP_IDS") or ""
 
-    DAILY_ITERATION_LIMIT = int(os.getenv("DAILY_ITERATION_LIMIT", 1))
+    DAILY_ITERATION_LIMIT = int(os.getenv("DAILY_ITERATION_LIMIT", "1"))
 
     LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
     stdout_handler = logging.StreamHandler(sys.stdout)

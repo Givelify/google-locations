@@ -3,7 +3,6 @@
 import unittest
 from unittest.mock import MagicMock, call, patch
 
-from app.enums import FilterType
 from app.scripts.donee_geocoder import main
 from app.services.location_and_outlines import (
     process_location_and_outlines,

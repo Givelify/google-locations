@@ -1,7 +1,5 @@
 """json module for parsing the google API responses"""
 
-import json
-
 import requests
 from requests.exceptions import RequestException
 from tenacity import (
