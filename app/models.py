@@ -4,25 +4,16 @@
 from sqlalchemy import JSON, Column, Float, Integer, String, create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
+from app.config import Config
+
 Base = declarative_base()
-
-
-class GoogleGivingPartnerLocations(Base):
-    """google_giving_partner_locations table"""
-
-    __tablename__ = "google_giving_partner_locations"
-
-    giving_partner_id = Column(Integer, primary_key=True)
-    place_id = Column(String(255), nullable=False)
-    address = Column(String(255), nullable=False)
-    latitude = Column(Float, nullable=False)
-    longitude = Column(Float, nullable=False)
 
 
 class GivingPartnerOutlines(Base):
     """giving_partner_outlines table"""
 
     __tablename__ = "giving_partner_outlines"
+    __table_args__ = {"schema": Config.PLATFORM_DB_DATABASE}
 
     giving_partner_id = Column(Integer, primary_key=True)
     outlines = Column(JSON, nullable=False)
@@ -31,18 +22,18 @@ class GivingPartnerOutlines(Base):
 class GivingPartners(Base):
     """giving_partners table"""
 
-    __tablename__ = "giving_partners"
+    __tablename__ = "donee_info"
+    __table_args__ = {"schema": Config.MONO_DB_DATABASE}
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
+    donee_id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(255), nullable=False)
-    phone = Column(String(25), nullable=False)
     address = Column(String(255), nullable=False)
     city = Column(String(55), nullable=False)
     state = Column(String(55), nullable=False)
     country = Column(String(50), nullable=True)
     zip = Column(String(10), nullable=False)
-    latitude = Column(Float, nullable=False)
-    longitude = Column(Float, nullable=False)
+    donee_lat = Column(Float, nullable=False)
+    donee_lon = Column(Float, nullable=False)
     active = Column(Integer, nullable=False)
     unregistered = Column(Integer, nullable=False)
 

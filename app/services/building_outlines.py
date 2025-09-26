@@ -1,31 +1,38 @@
-"""Module containing service functions for the location and outlines path"""
+"""Module containing service functions outlines only path"""
 
 from app.config import Config
 from app.google_api_calls import geocoding_api_address
 from app.helper import (
     extract_building_polygons,
     get_giving_partners,
-    get_lat_lon,
-    insert_google_data,
+    insert_google_outlines,
 )
 
 logger = Config.logger
 
 
-def run_location_and_outlines(session):
-    """Main module"""
-    result = get_giving_partners(session)
+def run_outlines(session):
+    """run_outlines"""
+    gp_ids = [int(x.strip()) for x in Config.GP_IDS.split(",") if x.strip()]
+    if not gp_ids:
+        logger.info(
+            "`GP_IDS` is empty",
+        )
+        return
+
+    result = get_giving_partners(session, gp_ids)
     if len(result) == 0:
         logger.info(
             "No Giving Partner(s) to process",
         )
         return
+
     for giving_partner in result:
         try:
-            process_location_and_outlines(session, giving_partner)
+            process_outlines(session, giving_partner)
         except Exception:
             logger.error(
-                "Error processing location and outlines for giving partner",
+                "Error processing outlines for giving partner",
                 value={
                     "giving_partner_id": str(giving_partner.donee_id),
                 },
@@ -33,10 +40,10 @@ def run_location_and_outlines(session):
             )
 
 
-def process_location_and_outlines(session, giving_partner):
-    """Module that processes location and outlines each GP"""
+def process_outlines(session, giving_partner):
+    """process_outlines"""
     logger.info(
-        "Processing location and outline for giving partner",
+        "Processing outline for giving partner",
         value={
             "giving_partner_id": str(giving_partner.donee_id),
         },
@@ -49,20 +56,26 @@ def process_location_and_outlines(session, giving_partner):
             giving_partner.zip,
             giving_partner.country,
         )
+
         destinations = (geocoding_result or {}).get("destinations", [])
         building_outlines = extract_building_polygons(destinations)
-        latitude, longitude = get_lat_lon(destinations)
 
-        insert_google_data(
-            session,
-            giving_partner,
-            latitude,
-            longitude,
-            building_outlines,
-        )
+        if building_outlines:
+            insert_google_outlines(
+                session,
+                giving_partner.donee_id,
+                building_outlines,
+            )
+        else:
+            logger.info(
+                "Unable to find outlines for giving partner",
+                value={
+                    "giving_partner_id": str(giving_partner.donee_id),
+                },
+            )
     except Exception:
         logger.error(
-            "Failure in process_location_and_outlines",
+            "Failure in process_outlines",
             value={
                 "giving_partner_id": str(giving_partner.donee_id),
             },
