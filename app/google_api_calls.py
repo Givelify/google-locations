@@ -65,6 +65,18 @@ def _call_geocoding_api(data):
                 value={"params": {k: v for k, v in data.items() if k != "key"}},
                 exc_info=True,
             )
+        elif (
+            isinstance(e, requests.HTTPError)
+            and e.response is not None
+            and e.response.status_code == 400
+        ):
+            # Sometimes google api returns 400 when the request body does not have
+            # enough information from GP
+            logger.warn(
+                "400 Error while calling Google geocoding API",
+                value={"params": {k: v for k, v in data.items() if k != "key"}},
+                exc_info=True,
+            )
         else:
             logger.error(
                 "Google Geocoding API call failed",
