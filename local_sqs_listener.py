@@ -1,4 +1,5 @@
-import os
+# Long running script used to test SNS publish locally
+
 import time
 
 import boto3
