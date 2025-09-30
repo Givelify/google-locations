@@ -31,10 +31,7 @@ def geocoding_api_address(address, city, state, zipcode, country):
             "addressQuery": f"{address}, {city}, {state} {zipcode}, {country}"
         }
     }
-    try:
-        return _call_geocoding_api(data)
-    except Exception:
-        return None
+    return _call_geocoding_api(data)
 
 
 @retry(
@@ -65,6 +62,7 @@ def _call_geocoding_api(data):
                 value={"params": {k: v for k, v in data.items() if k != "key"}},
                 exc_info=True,
             )
+            raise
         elif (
             isinstance(e, requests.HTTPError)
             and e.response is not None
@@ -77,10 +75,11 @@ def _call_geocoding_api(data):
                 value={"params": {k: v for k, v in data.items() if k != "key"}},
                 exc_info=True,
             )
+            return None
         else:
             logger.error(
                 "Google Geocoding API call failed",
                 value={"params": {k: v for k, v in data.items() if k != "key"}},
                 exc_info=True,
             )
-        raise
+            raise

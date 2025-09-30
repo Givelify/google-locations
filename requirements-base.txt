@@ -1,0 +1,52 @@
+-r requirements.txt
+
+# DB tools
+# SQLAlchemy ORM and MySQL driver
+SQLAlchemy==2.0.36 # ORM for interacting with the database
+PyMySQL==1.1.1 # MySQL driver for SQLAlchemy
+# Cryptography since MySQL 8.0 uses caching_sha2_password as the default authentication method
+cryptography==3.4.8 # For MySQL 8.0 authentication
+
+# Database migrations
+alembic==1.14.0 # Database migrations tool for SQLAlchemy
+
+# Environment variables management
+python-dotenv==1.0.1 # Load environment variables from .env files
+
+# Security and password hashing
+passlib==1.7.4  # For securely hashing passwords
+
+# Redis (optional, for caching or background tasks)
+redis==5.2.0 # For caching, session storage, or message brokering
+
+# Json, toml, and yaml parsing
+jsonschema==4.23.0  # JSON schema validation
+ujson==5.10.0  # Ultra fast JSON parsing
+jmespath==1.0.1 # JSON Matching Expressions
+tomli==2.2.1 # TOML parsing
+PyYAML==6.0.2 # YAML parsing
+iniconfig==2.0.0 # Configuration file parsing
+
+# HTTP requests
+requests==2.32.3 # HTTP library
+#^ urllib3==2.2.3 # HTTP library
+
+# Project specific items
+python-json-logger==2.0.7  # For logging JSON messages
+Jinja2==3.1.4 # Template engine for Python
+#^ MarkupSafe==3.0.2 # Markup safe strings
+
+anyio==4.6.2 # Asynchronous I/O library
+#^ idna==3.7 # Internationalized Domain Names in Applications (IDNA)
+boto3==1.35.71 # AWS SDK for Python
+#^ python-dateutil==2.9.0 # For parsing dates and times
+#^ six==1.16.0 # Compatibility library
+
+pydantic==2.9.2 # For parsing and validating data
+#^ pydantic_core==2.27.1 # Pydantic's core library
+
+# Geolocation and geocoding
+geopy==2.4.1 # Geocoding and reverse geocoding
+#^ geographiclib==2.0 # Geographic library
+
+marshmallow==3.23.1 # For serializing and deserializing data

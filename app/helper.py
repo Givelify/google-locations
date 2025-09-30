@@ -42,9 +42,14 @@ def insert_google_data(
                 "giving_partner_id": str(giving_partner.donee_id),
             },
         )
-    except SQLAlchemyError as e:
+    except SQLAlchemyError:
         session.rollback()
-        logger.error(f"sqlalchemy insertion error: {e}")
+        logger.error(
+            "Error inserting google data",
+            value={
+                "giving_partner_id": str(giving_partner.donee_id),
+            },
+        )
         raise
 
 
@@ -67,9 +72,14 @@ def insert_google_outlines(
                 "giving_partner_id": str(giving_partner_id),
             },
         )
-    except SQLAlchemyError as e:
+    except SQLAlchemyError:
         session.rollback()
-        logger.error(f"sqlalchemy insertion error: {e}")
+        logger.error(
+            "Error inserting google outlines",
+            value={
+                "giving_partner_id": str(giving_partner_id),
+            },
+        )
         raise
 
 

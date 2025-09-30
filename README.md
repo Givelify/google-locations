@@ -13,5 +13,14 @@ Instructions on how to run the script:
 # donee_geocoder
 This script replaces the existing donee_geocoder service and is intended to run as a cron job. Its purpose is to populate coordinates for newly ingested GPs. Unlike the old version, which used LocationIQ, this script retrieves coordinates from the Google API. Additionally, it can fetch and store building outlines for any GP, since the Google API provides that data.
 
+# donee_geocoder local setup
+This job sends an event to SNS at the end per GP. To replicate this in local, we will want to use localstack to spin up a local instance of SNS as well as SQS that is subscribed to the SNS just so we can confirm the message is being emit.
+1. `dc build`
+2. `dc up -d`
+3. `python3 local_sqs_listener.py` 
+    - This will continously poll the SQS that is subscribed to SNS for any messages. Best to run this in another terminal
+4. `python3 -m app.scripts.donee_geocoder`
+
+
 # outlines
 This script supports the SE in_building pilot. It updates or inserts building outlines from Google for the specific GPs defined in the GP_IDS environment variable.
