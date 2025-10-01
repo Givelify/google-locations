@@ -61,7 +61,6 @@ def _call_geocoding_api(data):
                 logger.error(
                     "429 Error while calling Google geocoding API",
                     value={"params": params},
-                    exc_info=True,
                 )
                 raise
 
@@ -74,9 +73,5 @@ def _call_geocoding_api(data):
                 )
                 return None
 
-        logger.error(
-            "Google Geocoding API call failed",
-            value={"params": params},
-            exc_info=True,
-        )
+        logger.error("Google Geocoding API call failed", value={"params": params})
         raise
