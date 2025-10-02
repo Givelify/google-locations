@@ -44,8 +44,3 @@ def main():
 
 if "__main__" == __name__:
     sys.exit(main())
-
-
-if "__main__" == __name__:
-    sys.exit(main())
-    sys.exit(main())

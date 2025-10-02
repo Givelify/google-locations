@@ -8,7 +8,6 @@ from unittest.mock import MagicMock, call, patch
 from app.config import Config
 from app.scripts.donee_geocoder import main
 from app.services.location_and_outlines import (
-    get_sns_client,
     get_sns_client_local,
     process_location_and_outlines,
     publish_sns_search_sync,
