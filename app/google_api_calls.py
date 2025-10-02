@@ -31,10 +31,7 @@ def geocoding_api_address(address, city, state, zipcode, country):
             "addressQuery": f"{address}, {city}, {state} {zipcode}, {country}"
         }
     }
-    try:
-        return _call_geocoding_api(data)
-    except Exception:
-        return None
+    return _call_geocoding_api(data)
 
 
 @retry(
@@ -55,32 +52,26 @@ def _call_geocoding_api(data):
         response.raise_for_status()
         return response.json()
     except RequestException as e:
-        if (
-            isinstance(e, requests.HTTPError)
-            and e.response is not None
-            and e.response.status_code == 429
-        ):
-            logger.error(
-                "429 Error while calling Google geocoding API",
-                value={"params": {k: v for k, v in data.items() if k != "key"}},
-                exc_info=True,
-            )
-        elif (
-            isinstance(e, requests.HTTPError)
-            and e.response is not None
-            and e.response.status_code == 400
-        ):
-            # Sometimes google api returns 400 when the request body does not have
-            # enough information from GP
-            logger.warn(
-                "400 Error while calling Google geocoding API",
-                value={"params": {k: v for k, v in data.items() if k != "key"}},
-                exc_info=True,
-            )
-        else:
-            logger.error(
-                "Google Geocoding API call failed",
-                value={"params": {k: v for k, v in data.items() if k != "key"}},
-                exc_info=True,
-            )
+        params = {k: v for k, v in data.items() if k != "key"}
+
+        if isinstance(e, requests.HTTPError) and e.response is not None:
+            status = e.response.status_code
+
+            if status == 429:
+                logger.error(
+                    "429 Error while calling Google geocoding API",
+                    value={"params": params},
+                )
+                raise
+
+            if status == 400:
+                # Sometimes Google API returns 400 when the request body lacks info
+                logger.warn(
+                    "400 Error while calling Google geocoding API",
+                    value={"params": params},
+                    exc_info=True,
+                )
+                return None
+
+        logger.error("Google Geocoding API call failed", value={"params": params})
         raise

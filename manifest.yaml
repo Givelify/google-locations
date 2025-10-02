@@ -23,6 +23,18 @@ services:
         suspend: true # Only Manual run
 
 components:
+  - component: aws-resources
+    iamPolicies:
+      sns:
+        type: sns
+        crossAccount: true
+        access:
+          - read
+          - write
+        resources:
+          name:
+            - master-event-bus.fifo
+          envPrefix: true
   - component: database
     database: platform
   - component: database

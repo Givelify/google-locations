@@ -1,11 +1,16 @@
 """unitest module for testing"""
 
+import json
 import unittest
+import uuid
 from unittest.mock import MagicMock, call, patch
 
+from app.config import Config
 from app.scripts.donee_geocoder import main
 from app.services.location_and_outlines import (
+    get_sns_client_local,
     process_location_and_outlines,
+    publish_sns_search_sync,
     run_location_and_outlines,
 )
 
@@ -13,6 +18,62 @@ from app.services.location_and_outlines import (
 class TestDoneeGeocoder(unittest.TestCase):
     """testing class for donee_geocoder.py"""
 
+    def setUp(self):
+        """Setup mocks before each test"""
+        self.mock_engine = MagicMock()
+        self.mock_session = MagicMock()
+        self.mock_sns = MagicMock()
+        self.mock_client = MagicMock()
+
+        self.mock_gp_1 = MagicMock()
+        self.mock_gp_1.donee_id = 1
+        self.mock_gp_1.address = "test_address"
+        self.mock_gp_1.city = "test_city"
+        self.mock_gp_1.state = "test_state"
+        self.mock_gp_1.zip = "test_zip"
+        self.mock_gp_1.country = "test_country"
+
+        self.mock_gp_2 = MagicMock()
+        self.mock_gp_2.donee_id = 2
+        self.mock_gp_2.address = "test_address_2"
+        self.mock_gp_2.city = "test_city_2"
+        self.mock_gp_2.state = "test_state_2"
+        self.mock_gp_2.zip = "test_zip_2"
+        self.mock_gp_2.country = "test_country_2"
+
+    @patch("app.scripts.donee_geocoder.get_sns_client_local")
+    @patch("app.scripts.donee_geocoder.get_sns_client")
+    @patch("app.scripts.donee_geocoder.get_engine")
+    @patch("app.scripts.donee_geocoder.get_session")
+    @patch("app.scripts.donee_geocoder.run_location_and_outlines")
+    @patch.dict(
+        "app.scripts.donee_geocoder.os.environ",
+        {
+            "LOCALSTACK_HOSTNAME": "http://localhost:4566",
+        },
+        clear=True,
+    )
+    def test_main_donee_geocoder_local_stack(
+        self,
+        mock_run_location_and_outlines,
+        mock_get_session,
+        mock_get_engine,
+        mock_get_sns_client,
+        mock_get_sns_client_local,
+    ):
+        """Test main() donee_geocoder flow with local stack"""
+        mock_get_engine.return_value = self.mock_engine
+        mock_get_sns_client_local.return_value = self.mock_sns
+        mock_get_session.return_value.__enter__.return_value = self.mock_session
+
+        main()
+        mock_get_sns_client.assert_not_called()
+        mock_run_location_and_outlines.assert_called_with(
+            self.mock_session, self.mock_sns
+        )
+
+    @patch("app.scripts.donee_geocoder.get_sns_client_local")
+    @patch("app.scripts.donee_geocoder.get_sns_client")
     @patch("app.scripts.donee_geocoder.get_engine")
     @patch("app.scripts.donee_geocoder.get_session")
     @patch("app.scripts.donee_geocoder.run_location_and_outlines")
@@ -21,40 +82,44 @@ class TestDoneeGeocoder(unittest.TestCase):
         mock_run_location_and_outlines,
         mock_get_session,
         mock_get_engine,
+        mock_get_sns_client,
+        mock_get_sns_client_local,
     ):
         """Test main() donee_geocoder flow"""
-        mock_engine = MagicMock()
-        mock_get_engine.return_value = mock_engine
-
-        mock_session = MagicMock()
-        mock_get_session.return_value.__enter__.return_value = mock_session
+        mock_get_engine.return_value = self.mock_engine
+        mock_get_sns_client.return_value = self.mock_sns
+        mock_get_session.return_value.__enter__.return_value = self.mock_session
 
         main()
+        mock_get_sns_client_local.assert_not_called()
+        mock_run_location_and_outlines.assert_called_with(
+            self.mock_session, self.mock_sns
+        )
 
-        mock_run_location_and_outlines.assert_called_with(mock_session)
-
+    @patch("app.services.location_and_outlines.publish_sns_search_sync")
     @patch("app.services.location_and_outlines.process_location_and_outlines")
     @patch("app.services.location_and_outlines.get_giving_partners")
     def test_run_location_and_outlines(
         self,
         mock_get_giving_partners,
         mock_process_location_and_outlines,
+        mock_publish_sns_search_sync,
     ):
         """Test run_location_and_outlines() success flow"""
-        mock_session = MagicMock()
+        mock_get_giving_partners.return_value = [self.mock_gp_1, self.mock_gp_2]
 
-        mock_gp_1 = MagicMock()
-        mock_gp_1.id = 1
-        mock_gp_2 = MagicMock()
-        mock_gp_2.id = 2
-        mock_get_giving_partners.return_value = [mock_gp_1, mock_gp_2]
-
-        run_location_and_outlines(mock_session)
-        mock_get_giving_partners.assert_called_with(mock_session)
+        run_location_and_outlines(self.mock_session, self.mock_sns)
+        mock_get_giving_partners.assert_called_with(self.mock_session)
         mock_process_location_and_outlines.assert_has_calls(
             [
-                call(mock_session, mock_gp_1),
-                call(mock_session, mock_gp_2),
+                call(self.mock_session, self.mock_gp_1),
+                call(self.mock_session, self.mock_gp_2),
+            ]
+        )
+        mock_publish_sns_search_sync.assert_has_calls(
+            [
+                call(self.mock_sns, self.mock_gp_1.donee_id),
+                call(self.mock_sns, self.mock_gp_2.donee_id),
             ]
         )
 
@@ -66,11 +131,10 @@ class TestDoneeGeocoder(unittest.TestCase):
         mock_process_location_and_outlines,
     ):
         """Test run_location_and_outlines() no giving partners"""
-        mock_session = MagicMock()
         mock_get_giving_partners.return_value = []
 
-        run_location_and_outlines(mock_session)
-        mock_get_giving_partners.assert_called_with(mock_session)
+        run_location_and_outlines(self.mock_session, self.mock_sns)
+        mock_get_giving_partners.assert_called_with(self.mock_session)
         mock_process_location_and_outlines.assert_not_called()
 
     @patch("app.services.location_and_outlines.geocoding_api_address")
@@ -85,14 +149,6 @@ class TestDoneeGeocoder(unittest.TestCase):
         mock_geocoding_api_address,
     ):
         """process_location_and_outlines autocomplete"""
-        mock_gp = MagicMock()
-        mock_gp.donee_id = 1
-        mock_gp.address = "test_address"
-        mock_gp.city = "test_city"
-        mock_gp.state = "test_state"
-        mock_gp.zip = "test_zip"
-        mock_gp.country = "test_country"
-
         mock_session = MagicMock()
         mock_geocoding_results = {"destinations": [{MagicMock()}]}
         mock_geocoding_api_address.return_value = mock_geocoding_results
@@ -100,7 +156,7 @@ class TestDoneeGeocoder(unittest.TestCase):
         mock_extract_building_polygons.return_value = mock_building_outlines
         mock_get_lat_lon.return_value = (10, 10)
 
-        process_location_and_outlines(mock_session, mock_gp)
+        process_location_and_outlines(mock_session, self.mock_gp_1)
         mock_geocoding_api_address.assert_called_with(
             "test_address",
             "test_city",
@@ -109,7 +165,7 @@ class TestDoneeGeocoder(unittest.TestCase):
             "test_country",
         )
         mock_insert_google_data.assert_called_with(
-            mock_session, mock_gp, 10, 10, mock_building_outlines
+            mock_session, self.mock_gp_1, 10, 10, mock_building_outlines
         )
 
     @patch("app.services.location_and_outlines.geocoding_api_address")
@@ -120,18 +176,9 @@ class TestDoneeGeocoder(unittest.TestCase):
         mock_geocoding_api_address,
     ):
         """process_location_and_outlines where no results"""
-        mock_gp = MagicMock()
-        mock_gp.donee_id = 1
-        mock_gp.address = "test_address"
-        mock_gp.city = "test_city"
-        mock_gp.state = "test_state"
-        mock_gp.zip = "test_zip"
-        mock_gp.country = "test_country"
-
-        mock_session = MagicMock()
         mock_geocoding_api_address.return_value = None
 
-        process_location_and_outlines(mock_session, mock_gp)
+        process_location_and_outlines(self.mock_session, self.mock_gp_1)
         mock_geocoding_api_address.assert_called_with(
             "test_address",
             "test_city",
@@ -139,7 +186,67 @@ class TestDoneeGeocoder(unittest.TestCase):
             "test_zip",
             "test_country",
         )
-        mock_insert_google_data.assert_called_with(mock_session, mock_gp, -1, -1, [])
+        mock_insert_google_data.assert_called_with(
+            self.mock_session, self.mock_gp_1, -1, -1, []
+        )
+
+    @patch.object(Config, "AWS_SNS_TOPIC", "test_sns_topic")
+    @patch("app.services.location_and_outlines.uuid.uuid4")
+    def test_publish_sns_search_sync(
+        self,
+        mock_uuid,
+    ):
+        """Test that SNS message is published correctly"""
+        mock_uuid.return_value = uuid.UUID("12345678-1234-5678-1234-567812345678")
+        giving_partner_id = 42
+
+        publish_sns_search_sync(self.mock_sns, giving_partner_id)
+
+        expected_message = {
+            "data": {"giving_partner_id": giving_partner_id, "operation": "update"}
+        }
+
+        self.mock_sns.publish.assert_called_once_with(
+            TopicArn="test_sns_topic",
+            Message=json.dumps(expected_message),
+            MessageGroupId="group",
+            MessageDeduplicationId=str(mock_uuid.return_value),
+            MessageAttributes={
+                "eventKey": {
+                    "DataType": "String",
+                    "StringValue": "search.giving-partner-search-sync-requested",
+                }
+            },
+        )
+
+    @patch("app.services.location_and_outlines.boto3.client")
+    @patch.dict(
+        "app.services.location_and_outlines.os.environ",
+        {
+            "LOCALSTACK_HOSTNAME": "LOCALSTACK_HOSTNAME_TEST",
+            "AWS_ACCESS_KEY": "AWS_ACCESS_KEY_TEST",
+            "AWS_SECRET_KEY": "AWS_SECRET_KEY_TEST",
+            "AWS_REGION": "AWS_REGION_TEST",
+        },
+        clear=True,
+    )
+    def test_get_sns_client_local(
+        self,
+        mock_boto_client,
+    ):
+        """Test get_sns_client_local with LocalStack env vars"""
+        mock_boto_client.return_value = self.mock_client
+
+        client = get_sns_client_local()
+
+        mock_boto_client.assert_called_once_with(
+            "sns",
+            endpoint_url="LOCALSTACK_HOSTNAME_TEST",
+            aws_access_key_id="AWS_ACCESS_KEY_TEST",
+            aws_secret_access_key="AWS_SECRET_KEY_TEST",
+            region_name="AWS_REGION_TEST",
+        )
+        self.assertEqual(client, self.mock_client)
 
 
 if __name__ == "__main__":

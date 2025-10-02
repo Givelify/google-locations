@@ -1,5 +1,11 @@
 """Module containing service functions for the location and outlines path"""
 
+import json
+import os
+import uuid
+
+import boto3
+
 from app.config import Config
 from app.google_api_calls import geocoding_api_address
 from app.helper import (
@@ -12,7 +18,7 @@ from app.helper import (
 logger = Config.logger
 
 
-def run_location_and_outlines(session):
+def run_location_and_outlines(session, sns_client):
     """Main module"""
     result = get_giving_partners(session)
     if len(result) == 0:
@@ -23,6 +29,7 @@ def run_location_and_outlines(session):
     for giving_partner in result:
         try:
             process_location_and_outlines(session, giving_partner)
+            publish_sns_search_sync(sns_client, giving_partner.donee_id)
         except Exception:
             logger.error(
                 "Error processing location and outlines for giving partner",
@@ -41,30 +48,66 @@ def process_location_and_outlines(session, giving_partner):
             "giving_partner_id": str(giving_partner.donee_id),
         },
     )
-    try:
-        geocoding_result = geocoding_api_address(
-            giving_partner.address,
-            giving_partner.city,
-            giving_partner.state,
-            giving_partner.zip,
-            giving_partner.country,
-        )
-        destinations = (geocoding_result or {}).get("destinations", [])
-        building_outlines = extract_building_polygons(destinations)
-        latitude, longitude = get_lat_lon(destinations)
+    geocoding_result = geocoding_api_address(
+        giving_partner.address,
+        giving_partner.city,
+        giving_partner.state,
+        giving_partner.zip,
+        giving_partner.country,
+    )
+    destinations = (geocoding_result or {}).get("destinations", [])
+    building_outlines = extract_building_polygons(destinations)
+    latitude, longitude = get_lat_lon(destinations)
 
-        insert_google_data(
-            session,
-            giving_partner,
-            latitude,
-            longitude,
-            building_outlines,
-        )
-    except Exception:
-        logger.error(
-            "Failure in process_location_and_outlines",
-            value={
-                "giving_partner_id": str(giving_partner.donee_id),
-            },
-            exc_info=True,
-        )
+    insert_google_data(
+        session,
+        giving_partner,
+        latitude,
+        longitude,
+        building_outlines,
+    )
+
+
+def get_sns_client():
+    """Return sns client for donee_geocoder"""
+    return boto3.client("sns")
+
+
+def get_sns_client_local():
+    """Return LocalStack SNS client for donee_geocoder"""
+    return boto3.client(
+        "sns",
+        endpoint_url=os.environ.get("LOCALSTACK_HOSTNAME", "http://localhost:4566"),
+        region_name=os.environ.get("AWS_REGION", "us-east-1"),
+        aws_access_key_id=os.environ.get("AWS_ACCESS_KEY", "test"),
+        aws_secret_access_key=os.environ.get("AWS_SECRET_KEY", "test"),
+    )
+
+
+def publish_sns_search_sync(sns_client, giving_partner_id: int) -> None:
+    """
+    Publish a message to the SNS topic to sync the gp to search.
+    """
+    sns_message = {
+        "data": {"giving_partner_id": giving_partner_id, "operation": "update"}
+    }
+
+    sns_client.publish(
+        TopicArn=Config.AWS_SNS_TOPIC,
+        Message=json.dumps(sns_message),
+        MessageGroupId="group",
+        MessageDeduplicationId=str(uuid.uuid4()),
+        MessageAttributes={
+            "eventKey": {
+                "DataType": "String",
+                "StringValue": "search.giving-partner-search-sync-requested",
+            }
+        },
+    )
+
+    logger.info(
+        "Published SNS message for giving_partner",
+        value={
+            "giving_partner_id": str(giving_partner_id),
+        },
+    )

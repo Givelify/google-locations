@@ -33,3 +33,5 @@ class Config:
     logger = slogger.StructuredLogger.getLogger(
         "google-locations", LOG_LEVEL, stdout_handler
     )
+
+    AWS_SNS_TOPIC = os.getenv("AWS_SNS_TOPIC")
