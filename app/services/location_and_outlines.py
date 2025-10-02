@@ -70,19 +70,18 @@ def process_location_and_outlines(session, giving_partner):
 
 def get_sns_client():
     """Return sns client for donee_geocoder"""
-    kwargs = {}
+    return boto3.client("sns")
 
-    # Set endpoint if running against LocalStack
-    localstack_endpoint = os.environ.get("LOCALSTACK_HOSTNAME")
-    if localstack_endpoint:
-        kwargs["endpoint_url"] = localstack_endpoint
 
-        # LocalStack still requires dummy credentials
-        kwargs["aws_access_key_id"] = os.environ.get("AWS_ACCESS_KEY")
-        kwargs["aws_secret_access_key"] = os.environ.get("AWS_SECRET_KEY")
-        kwargs["region_name"] = os.environ.get("AWS_REGION")
-
-    return boto3.client("sns", **kwargs)
+def get_sns_client_local():
+    """Return LocalStack SNS client for donee_geocoder"""
+    return boto3.client(
+        "sns",
+        endpoint_url=os.environ.get("LOCALSTACK_HOSTNAME", "http://localhost:4566"),
+        region_name=os.environ.get("AWS_REGION", "us-east-1"),
+        aws_access_key_id=os.environ.get("AWS_ACCESS_KEY", "test"),
+        aws_secret_access_key=os.environ.get("AWS_SECRET_KEY", "test"),
+    )
 
 
 def publish_sns_search_sync(sns_client, giving_partner_id: int) -> None:

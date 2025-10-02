@@ -1,10 +1,15 @@
 """Module that connects to mysql server and performs database operations"""
 
+import os
 import sys
 
 from app.config import Config
 from app.models import get_engine, get_session
-from app.services.location_and_outlines import get_sns_client, run_location_and_outlines
+from app.services.location_and_outlines import (
+    get_sns_client,
+    get_sns_client_local,
+    run_location_and_outlines,
+)
 
 logger = Config.logger
 
@@ -13,7 +18,10 @@ def main():
     """Main module"""
     engine = None
     try:
-        sns_client = get_sns_client()
+        if os.environ.get("LOCALSTACK_HOSTNAME"):
+            sns_client = get_sns_client_local()
+        else:
+            sns_client = get_sns_client()
 
         engine = get_engine(
             db_host=Config.PLATFORM_DB_HOST_WRITE,
@@ -35,4 +43,9 @@ def main():
 
 
 if "__main__" == __name__:
+    sys.exit(main())
+
+
+if "__main__" == __name__:
+    sys.exit(main())
     sys.exit(main())

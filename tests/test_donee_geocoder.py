@@ -9,6 +9,7 @@ from app.config import Config
 from app.scripts.donee_geocoder import main
 from app.services.location_and_outlines import (
     get_sns_client,
+    get_sns_client_local,
     process_location_and_outlines,
     publish_sns_search_sync,
     run_location_and_outlines,
@@ -41,6 +42,38 @@ class TestDoneeGeocoder(unittest.TestCase):
         self.mock_gp_2.zip = "test_zip_2"
         self.mock_gp_2.country = "test_country_2"
 
+    @patch("app.scripts.donee_geocoder.get_sns_client_local")
+    @patch("app.scripts.donee_geocoder.get_sns_client")
+    @patch("app.scripts.donee_geocoder.get_engine")
+    @patch("app.scripts.donee_geocoder.get_session")
+    @patch("app.scripts.donee_geocoder.run_location_and_outlines")
+    @patch.dict(
+        "app.scripts.donee_geocoder.os.environ",
+        {
+            "LOCALSTACK_HOSTNAME": "http://localhost:4566",
+        },
+        clear=True,
+    )
+    def test_main_donee_geocoder_local_stack(
+        self,
+        mock_run_location_and_outlines,
+        mock_get_session,
+        mock_get_engine,
+        mock_get_sns_client,
+        mock_get_sns_client_local,
+    ):
+        """Test main() donee_geocoder flow with local stack"""
+        mock_get_engine.return_value = self.mock_engine
+        mock_get_sns_client_local.return_value = self.mock_sns
+        mock_get_session.return_value.__enter__.return_value = self.mock_session
+
+        main()
+        mock_get_sns_client.assert_not_called()
+        mock_run_location_and_outlines.assert_called_with(
+            self.mock_session, self.mock_sns
+        )
+
+    @patch("app.scripts.donee_geocoder.get_sns_client_local")
     @patch("app.scripts.donee_geocoder.get_sns_client")
     @patch("app.scripts.donee_geocoder.get_engine")
     @patch("app.scripts.donee_geocoder.get_session")
@@ -51,6 +84,7 @@ class TestDoneeGeocoder(unittest.TestCase):
         mock_get_session,
         mock_get_engine,
         mock_get_sns_client,
+        mock_get_sns_client_local,
     ):
         """Test main() donee_geocoder flow"""
         mock_get_engine.return_value = self.mock_engine
@@ -58,7 +92,7 @@ class TestDoneeGeocoder(unittest.TestCase):
         mock_get_session.return_value.__enter__.return_value = self.mock_session
 
         main()
-
+        mock_get_sns_client_local.assert_not_called()
         mock_run_location_and_outlines.assert_called_with(
             self.mock_session, self.mock_sns
         )
@@ -187,46 +221,31 @@ class TestDoneeGeocoder(unittest.TestCase):
         )
 
     @patch("app.services.location_and_outlines.boto3.client")
-    @patch.dict("app.services.location_and_outlines.os.environ", {}, clear=True)
-    def test_get_sns_client_without_localstack(
-        self,
-        mock_boto_client,
-    ):
-        """Test get_sns_client with no LocalStack env vars"""
-        mock_boto_client.return_value = self.mock_client
-
-        client = get_sns_client()
-
-        mock_boto_client.assert_called_once_with("sns")
-        self.assertEqual(client, self.mock_client)
-
-    @patch("app.services.location_and_outlines.boto3.client")
     @patch.dict(
         "app.services.location_and_outlines.os.environ",
         {
-            "LOCALSTACK_HOSTNAME": "http://localhost:4566",
-            "AWS_ACCESS_KEY": "test",
-            "AWS_SECRET_KEY": "secret",
-            "AWS_REGION": "us-east-1",
+            "LOCALSTACK_HOSTNAME": "LOCALSTACK_HOSTNAME_TEST",
+            "AWS_ACCESS_KEY": "AWS_ACCESS_KEY_TEST",
+            "AWS_SECRET_KEY": "AWS_SECRET_KEY_TEST",
+            "AWS_REGION": "AWS_REGION_TEST",
         },
         clear=True,
     )
-    def test_get_sns_client_with_localstack(
+    def test_get_sns_client_local(
         self,
         mock_boto_client,
     ):
-        """Test get_sns_client with LocalStack env vars"""
+        """Test get_sns_client_local with LocalStack env vars"""
         mock_boto_client.return_value = self.mock_client
 
-        client = get_sns_client()
+        client = get_sns_client_local()
 
-        # Assert boto3 client called with correct kwargs
         mock_boto_client.assert_called_once_with(
             "sns",
-            endpoint_url="http://localhost:4566",
-            aws_access_key_id="test",
-            aws_secret_access_key="secret",
-            region_name="us-east-1",
+            endpoint_url="LOCALSTACK_HOSTNAME_TEST",
+            aws_access_key_id="AWS_ACCESS_KEY_TEST",
+            aws_secret_access_key="AWS_SECRET_KEY_TEST",
+            region_name="AWS_REGION_TEST",
         )
         self.assertEqual(client, self.mock_client)
 
