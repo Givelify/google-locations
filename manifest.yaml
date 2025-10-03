@@ -24,6 +24,11 @@ services:
 
 components:
   - component: aws-resources
+    sqs:
+      default:
+        create: true
+        eventSubscription: false
+        env: ["qa", "prod"]
     iamPolicies:
       sns:
         type: sns
