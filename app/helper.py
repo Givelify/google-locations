@@ -21,19 +21,26 @@ def insert_google_data(
         giving_partner.donee_lat = latitude
         giving_partner.donee_lon = longitude
 
-        if outlines:
-            gp_outline_data = GivingPartnerOutlines(
-                giving_partner_id=giving_partner.donee_id,
-                outlines=outlines,
-            )
-            session.merge(gp_outline_data)
-        else:
-            logger.info(
-                "Unable to find outlines for giving partner",
-                value={
-                    "giving_partner_id": str(giving_partner.donee_id),
-                },
-            )
+        if Config.DONEE_GEOCODER_ENABLE_OUTLINES:
+            if outlines:
+                logger.info(
+                    "Inserting outlines for giving partner",
+                    value={
+                        "giving_partner_id": str(giving_partner.donee_id),
+                    },
+                )
+                gp_outline_data = GivingPartnerOutlines(
+                    giving_partner_id=giving_partner.donee_id,
+                    outlines=outlines,
+                )
+                session.merge(gp_outline_data)
+            else:
+                logger.info(
+                    "Unable to find outlines for giving partner",
+                    value={
+                        "giving_partner_id": str(giving_partner.donee_id),
+                    },
+                )
 
         session.commit()
         logger.info(

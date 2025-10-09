@@ -47,3 +47,4 @@ components:
   - component: custom-config
     defaults:
       DAILY_ITERATION_LIMIT: 1
+      DONEE_GEOCODER_ENABLE_OUTLINES: False

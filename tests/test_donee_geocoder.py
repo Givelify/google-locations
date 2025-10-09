@@ -77,6 +77,7 @@ class TestDoneeGeocoder(unittest.TestCase):
     @patch("app.scripts.donee_geocoder.get_engine")
     @patch("app.scripts.donee_geocoder.get_session")
     @patch("app.scripts.donee_geocoder.run_location_and_outlines")
+    @patch.dict("os.environ", {}, clear=True)  # no LOCALSTACK_HOSTNAME
     def test_main_donee_geocoder(
         self,
         mock_run_location_and_outlines,
