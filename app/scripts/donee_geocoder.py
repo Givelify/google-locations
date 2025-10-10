@@ -3,6 +3,8 @@
 import os
 import sys
 
+import sentry_sdk
+
 from app.config import Config
 from app.models import get_engine, get_session
 from app.services.location_and_outlines import (
@@ -12,6 +14,12 @@ from app.services.location_and_outlines import (
 )
 
 logger = Config.logger
+
+sentry_sdk.init(
+    dsn=Config.SENTRY_DSN,
+    send_default_pii=True,
+    environment=Config.APP_ENV,
+)
 
 
 def main():
