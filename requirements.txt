@@ -6,3 +6,4 @@ givelifylogging @ git+https://github.com/Givelify/structured-logging-python-pack
 sqlalchemy
 tenacity
 cryptography
+sentry-sdk

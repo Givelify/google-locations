@@ -2,11 +2,19 @@
 
 import sys
 
+import sentry_sdk
+
 from app.config import Config
 from app.models import get_engine, get_session
 from app.services.building_outlines import run_outlines
 
 logger = Config.logger
+
+sentry_sdk.init(
+    dsn=Config.SENTRY_DSN,
+    send_default_pii=True,
+    environment=Config.APP_ENV,
+)
 
 
 def main():

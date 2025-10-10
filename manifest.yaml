@@ -48,3 +48,9 @@ components:
     defaults:
       DAILY_ITERATION_LIMIT: 1
       DONEE_GEOCODER_ENABLE_OUTLINES: False
+      SENTRY_DSN: https://53169dfd3e28776310f38c86fb1bc76b@o207548.ingest.us.sentry.io/4510166103752704
+    env:
+      qa:
+        APP_ENV: qa
+      prod:
+        APP_ENV: prod

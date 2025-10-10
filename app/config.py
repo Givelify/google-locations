@@ -14,6 +14,8 @@ load_dotenv()
 class Config:
     """config file"""
 
+    APP_ENV = os.getenv("APP_ENV", "local")
+
     PLATFORM_DB_HOST_WRITE = os.getenv("PLATFORM_DB_HOST_WRITE")
     PLATFORM_DB_PORT = os.getenv("PLATFORM_DB_PORT")
     PLATFORM_DB_USERNAME = os.getenv("PLATFORM_DB_USERNAME")
@@ -38,3 +40,4 @@ class Config:
     )
 
     AWS_SNS_TOPIC = os.getenv("AWS_SNS_TOPIC")
+    SENTRY_DSN = os.getenv("SENTRY_DSN", None)
