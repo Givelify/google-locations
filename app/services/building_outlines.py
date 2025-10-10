@@ -13,6 +13,7 @@ logger = Config.logger
 
 def run_outlines(session):
     """run_outlines"""
+    1 / 0
     gp_ids = [int(x.strip()) for x in Config.GP_IDS.split(",") if x.strip()]
     if not gp_ids:
         logger.info(
